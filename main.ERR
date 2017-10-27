@@ -1,0 +1,8 @@
+SET  ???SET[F5] TO 0
+Error in line 29: Command contains unrecognized phrase/keyword.
+SET  ???SET[CB] TO (GCOLDDIR)
+Error in line 236: Command contains unrecognized phrase/keyword.
+???MEM[3F] = 73
+Error in line 394: Function name is missing ).
+IF 
+Error in line 611: Command is missing required clause.

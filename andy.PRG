@@ -1,0 +1,1646 @@
+*!* Get the url responseText
+Function httpGet(Url as String,sendData as String) as String
+	&& Set the default return value.
+	Local returnValue as String
+	returnValue = ""
+	
+	&& Check the parameters & set them default value if need
+	If Vartype(url)=Vartype("") Then
+		&& Program
+		Local myHTTP as Object
+		Try
+	*		myHTTP = Createobject("MSXML2.XMLHTTP")
+			myHTTP = Createobject("WinHttp.WinHttpRequest.5.1")
+			myHTTP.Open( "get", url,.F.)
+			If (Vartype(sendData)<>"C" or Empty(sendData)) Then
+				myHTTP.send()
+			Else
+				myHTTP.send(sendData)
+			EndIf
+			returnValue = myHTTP.responseText
+		Catch to xErr
+			returnValue = xErr.Message
+		EndTry
+	EndIf
+	
+	Return returnValue
+EndFunc
+*------
+*!* Get the url responseText
+Function httpPost(Url as String,sendData as string) as String
+	&& Set the default return value.
+	Local returnValue as String
+	returnValue = ""
+	
+	&& Check the parameters & set them default value if need
+	If Vartype(url)=Vartype("") Then
+		&& Program
+		Local myHTTP as Object
+		try
+	*		myHTTP = Createobject("MSXML2.XMLHTTP")
+			myHTTP = Createobject("WinHttp.WinHttpRequest.5.1")		
+			myHTTP.Open("post", url,.F.)
+			myHTTP.setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+			If (Vartype(sendData)<>"C" or Empty(sendData)) Then
+				myHTTP.send()
+			Else
+				myHTTP.send(sendData)
+			EndIf		
+			returnValue = myHTTP.responseText
+		Catch to xErr
+			returnValue = xErr.Message
+		EndTry
+	EndIf
+	
+	Return returnValue
+EndFunc
+*------
+*!* Download the wavehouse data
+Function downloadWHSEData(whseURL as String) as String 
+	Local returnValue
+	
+	returnValue = httpPost("http://192.198.208.43/Sync10/action/checkin/AjaxGetAllStorageAction.action")
+	
+	Return returnValue
+Endfunc
+*------
+*!* Check the login is valid.
+Function xmlBuildToString(userName as String,password as String,Sheet as String) as String
+	&& Check the parameters & set them default value if need
+	If Vartype(userName)!=Vartype("") then
+		userName = "admin" && default login user name
+	Endif
+	If Vartype(password)!=Vartype("") then
+		password = "@dm1n" && default login password
+	EndIf
+	If Vartype(Sheet)!=Vartype("") then
+		Sheet = "Login" && default login password
+	EndIf
+
+	&& Program
+	Local objDom as Object && objDom.XML = "<Request><Account>admin</Account><Password>admin</Password><Sheet>Login</Sheet></Request>"
+	Local objElemRequest as Object && XML Elem Node
+	Local objSubElem as Object && 2th xml elem node.
+	objDom = Createobject("MSXML2.DOMDocument")
+	objDom.async=.F. && Òì²½Ö´ÐÐ£¬µÈÄÃµ½
+	objDom.validateOnParse = .T.
+		* add 1st field <Request>
+	objElemRequest = objDom.createElement("Request")
+	objDom.appendChild(objElemRequest )
+		* add 2st field <Account>
+		objSubElem = objDom.createElement("Account")
+		objSubElem.Text = userName
+		objElemRequest.appendChild(objSubElem)
+		* add field <Password>
+		objSubElem = objDom.createElement("Password")
+		objSubElem.Text = password
+		objElemRequest.appendChild(objSubElem)
+		* add field <Sheet>
+		objSubElem = objDom.createElement("Sheet")
+		objSubElem.Text = "Login"
+	objElemRequest.appendChild(objSubElem)
+	
+	Return objDom.xml
+EndFunc
+*------
+*!* Check the login is valid.
+Function LoginCheck(userName as String,password as String,Url as String) as String
+	&& Set the default return value.
+	Local returnValue as String
+	returnValue = ""
+	
+
+	If Vartype(url)!=Vartype("") Then
+		url = "http://192.198.208.43/Sync10/action/checkin/CheckInExcelLoginAction.action" && default login check url
+	Endif
+	
+	&& Program
+	Local postData
+	postData = xmlBuildToString()
+	
+	returnValue = httpPost(url,postData)
+
+	Return returnValue
+Endfunc
+*------
+Procedure datetimeToString(tDatetime)
+	Local cReturnValue 
+	
+	If Vartype(tDatetime)!=Vartype(Datetime()) Then
+		tDatetime = Datetime() && set the default value as current datetime
+	Endif
+
+	cReturnValue = Strtran(Ttoc(tDatetime,3),Upper('t'),' ')
+	
+	Return cReturnValue
+EndProc
+*------
+Function randBetween(minValue as Integer, maxValue as Integer) integer && question: ?randBetween(1,2)  it will return 1 only whenever.
+	Local nReturnValue
+	nReturnValue = 0
+	
+	minValue = DefNumber(minValue,0)
+	maxValue = DefNumber(maxValue,0)
+	If minValue * maxValue = 0 or minValue>maxValue Then
+		Return nReturnValue && return 0	
+	Else
+		If MinValue = maxValue Then
+			Return minValue
+		Else
+			Do while !Between(nReturnValue ,minValue, maxValue)
+				nReturnValue = Rand() * Seconds()
+				nReturnValue = nReturnValue - Int(nReturnValue)
+				nReturnValue = nReturnValue + ( 1/(maxValue-minValue+1) )
+				nReturnValue = Int((nReturnValue) * maxValue)
+			EndDo
+		EndIf
+	EndIf	
+
+	Return nReturnValue
+Endfunc
+*------
+* getPath('Excel') && "D:\Program Files (x86)\Microsoft Office\Office12\EXCEL.EXE"
+Function getPath(cmdName as String) as String
+	Local cReturnValue
+	cReturnValue = Space(254)
+		
+	If IsValidStr(cmdName) Then
+		cmdName = Forceext(cmdName,'exe')
+	Else
+		Return Alltrim(cReturnValue)
+	Endif
+	
+	Local cRegAppPath, cRegAppName, cShortPath
+	cRegAppPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths"
+	cRegAppName = Forcepath(cmdName,cRegAppPath )
+	cShortPath = Regedit(2,'HKLM',cRegAppName ,,'') && The last parameter is empty that means get the reg key which named "(Ä¬ÈÏ)"
+	If !IsValidStr(cShortPath) Then
+		Return Alltrim(cReturnValue)
+	Else
+		Declare Integer GetLongPathName IN kernel32 As GetLongPathNameA ; 
+		String lpszShortPath , ; 
+		String lpszIntegerPath , ; 
+		Integer cchBuffer && return the long path name length as integer
+		
+		Local nPathNameLongth
+		nPathNameLongth = GetLongPathNameA(cShortPath, @cReturnValue, Len(cReturnValue)) && Store the lonPathName to cReturnValue
+		cReturnValue = Left(cReturnValue, nPathNameLongth)
+		
+		Clear Dlls GetLongPathNameA
+	Endif
+	
+	Return cReturnValue
+Endfunc
+*------
+Function DbfToClip(cDbfAlias as String, nClipFormat as Integer) as String 
+	* Seting default return value.
+	Local cReturnValue
+	cReturnValue = ''
+	
+	* Checking the parameters.
+	Local nSelect, cUsingAlias as String, lNeedOpen && lNeedOpen default value is .f. when using the keyword local define it.
+	nSelect = Select()
+	cDbfAlias = defString(cDbfAlias)
+	If Select(Juststem(cDbfAlias))>0 Then
+		cUsingAlias = GetAlias(cDbfAlias) 
+		If !IsValidStr(cUsingAlias) Then && If cDbfAlias exist opened and no need to open again
+			lNeedOpen = .T.
+		Endif
+	Else
+		lNeedOpen = .T.
+	Endif
+	
+	If lNeedOpen = .T.
+		cUsingAlias = AliasName()
+		If !LcDbfOpen(cDbfAlias,cUsingAlias ) Then
+			Wait window "File '"+ForcePath(ForceExt(cDbfAlias,'dbf'),Set('directory')) + "' does not exist ." nowait
+			Return cReturnValue
+		EndIf
+	Endif
+	
+	nClipFormat = DefNumber(nClipFormat)
+	If !Inlist(nClipFormat,1,3)  Then
+		nClipFormat = 3 && set default value as 3,   1:Ê¹ÓÃ¿Õ¸ñ·Ö¸ô×Ö¶Î¡£     3:(Ä¬ÈÏÖµ)Ê¹ÓÃÖÆ±í·û·Ö¸ô×Ö¶Î¡£
+	EndIf
+	
+	* Funciton kernel
+	If nReccount(cUsingAlias,.T.)>0 Then
+		_vfp.DataToClip(cUsingAlias,,nClipFormat)
+		cReturnValue = _cliptext
+	EndIf
+	
+	
+	* Restory the environment.
+	If lNeedOpen Then
+		LcDbfClose(cUsingAlias)
+		Select (nSelect)
+	EndIf
+	
+	* Return value.
+	Return cReturnValue
+Endfunc
+*------
+Function getCurDir()
+	Return FullPath(Curdir())
+EndFunc
+*------
+Function openCurDir()
+	cTmpCurdir  = getCurdir()
+	run/n explorer &cTmpCurdir.
+EndFunc
+*------
+*--- º¯Êý£º ISComObject
+*--- ¹¦ÄÜ£º ÅÐ¶ÏÒ»¸ö¿Ø¼þÊÇ·ñ×¢²á¹ý , Èç¹û×¢²á¹ýÔò¿ÉÒÔÊ¹ÓÃ CreateObject(OLEClass)À´´´½¨.
+*--- ²ÎÊý£º ¿Ø¼þµÄ OLEClass
+*--- ËµÃ÷£º ´Ëº¯Êý´øµÄregistry.h ºÍ registry.vcx¡¢registry.vct Ã¿¸öÈËµçÄÔÉÏ¶¼ÓÐ
+*---        ÔÚC:\Program Files\Microsoft Visual FoxPro 9\Ffc Àï£¬copy ³öÀ´£¬±àÒë½øÄãµÄProject Àï¼´¿É¡£
+*--- ´Ëº¯Êývfp6¡¢7¡¢8¡¢9Ó¦¸Ã¶¼ÄÜÍ¨ÓÃ£¡
+*--- mihu ÓÚ 2005.02.02 ·¢±íÓÚ¶¯¸ÐÓÎ±ê£¬ÈôÊ¹ÓÃÇë±£Áô´ËÐÅÏ¢¡£
+* ISComObject("Excel.Application") && .T.
+* ISComObject("ABCDE.Application") && .F.
+Function ISComObject
+    Lparameters tcProgID
+    #Include registry.h
+    If !("\REGISTRY" $ Set('classlib'))
+        Set Classlib To registry Additive
+    Endif
+    Local loReg
+    loReg=Createobject('registry')
+    Local lcClassDescript,lnErr,lcClassID,lnHKEY_CLASSES_ROOT
+    Store '' To lcClassDescript,lcClassID
+    lnHKEY_CLASSES_ROOT= bitset(0,31)
+    lnErr=loReg.GetRegKey('',@lcClassDescript,tcProgID,lnHKEY_CLASSES_ROOT)
+    If lnErr#0
+        Return .F.
+    Endif
+Endfunc
+*------
+* RegistServer("jMail.dll") && ×¢²áOCX/DLL/COM ×é¼þ
+Procedure RegistServer
+    Lparameters pcOCX
+    Declare Integer LoadLibrary In kernel32 As "LoadLibraryA" String lpLibFileName
+    Local lhLib
+    lhLib = LoadLibraryA( pcOCX )
+    If (lhLib < 32) && HINSTANCE_ERROR
+        Return "ERROR: Could not Load Library "+pcOCX
+    Endif
+    *// Find the entry point.
+    Declare Integer GetProcAddress In kernel32 Integer hModule,String lpProcName
+    lpRegProc = GetProcAddress(lhLib, 'DllRegisterServer')
+    If lpRegProc>0 && Procedure exists!
+        Declare Integer DllRegisterServer In &pcOCX As OcxReg
+        lnRes = OcxReg()
+        * Maybe can return the value to .T. or .F. to instead "Success" or "ERROR information"
+        If lnRes=0
+            Return "SUCCESS"
+        Else
+            Return "ERROR: DllRegisterServer returned "+Transform(lnRes)
+        Endif
+    Else
+        * //unable to locate entry point
+        Return "ERROR: Library "+pcOCX+" has no entry point for DllRegisterServer"
+    Endif
+EndProc
+*------
+* UnRegistServer("jMail.dll") && Ð¶ÔØ OCX/DLL/COM ×é¼þ
+Procedure UnRegistServer
+	Lparameters pcOCX
+	
+	Local lReturnValue 
+	Local cmd as string
+	cmd ='regsvr32 /u /s ' + pcOCX
+	lReturnValue = itRun(cmd)
+	
+	Return lReturnValue
+Endproc
+*------
+Function jsonToExcel(jsonStr As String) as Logical && unfinished this function just used for TaskActivity, maybe can deal with any data if possible ?
+	lReturnValue = .F.
+	
+	On Error a=1 && do nothing
+	
+	If Vartype(jsonStr)!=Vartype("") Or Empty(jsonStr) Then
+		Messagebox('nothing to anayasis.')
+		Return lReturnValue
+	Endif
+
+	* create Json object
+	Local jsonObject As Object, keysObj As Object, keysCount as Integer
+	jsonObject = jsFunction("JsonSerializer",jsonStr )
+	keysObj = jsFunction("jsonGetKeys",jsonObject )
+	keysCount = jsFunction("jsonGetProperty",keysObj,"length")
+	
+
+	
+	List Memory like keysArray
+	
+	* Fill data into excel base on Json 	* question how to get fields as array ? unfinished
+	* Create Excel Object
+	Local oExcel as Object
+	oExcel = CreateExcel()
+	If !IsExcelObject(oExcel) Then
+		Release oExcel
+		MessageBox('Excel not installed or configure failed.',0+48,'Warning')
+		Return lReturnValue 
+	Else
+		With oExcel
+			.Workbooks.Add()
+			.ScreenUpdating = .F.
+		EndWith
+	Endif
+	
+	* Copy Json Keys to Array     && * question how to get fields as array ? unfinished
+	Local keysArray(keysCount) as String, keyIndex as Integer
+	keyIndex = 0
+	For Each Key In KeysObj
+		keyIndex = keyIndex +1
+		keysArray(keyIndex) = key
+		oExcel.Cells(1,keyIndex) = key
+	Next
+
+	* Fill data
+	Local nRows as Integer, oSubJsonObj, cTmpField, nColumns as Integer, nColumnsCount as Integer
+	nColumnsCount = oExcel.ActiveSheet.UsedRange.Columns.Count()
+*!*		For nRows = 1 To jsFunction("jsonGetProperty",jsonObject,"length")
+*!*			Wait Window Alltrim(str( nRows/jsonObject.length *100))+' % datas analysised.' nowait
+*!*			If Isdigit(keysArray(nRows)) Then && If it is numeric
+*!*				For nColumns = 1 To nColumnsCount 
+*!*					cTmpField = oExcel.Cells(1,nColumns)
+*!*					oSubJsonObj = jsFunction("jsonGetProperty",jsonObject,nRows-1)
+*!*					oExcel.Cells(nRows+1, nColumns) = jsFunction("jsonGetProperty",oSubJsonObj,cTmpField)
+*!*				Next
+*!*			Else
+			For nColumns = 1 To nColumnsCount 
+				oExcel.Cells(2, nColumns) = jsFunction("jsonGetProperty",jsonObject,keysArray(nColumns))
+			Next
+*!*			Wait clear
+*!*			EndIf
+*!*		Next
+	
+	With oExcel
+		.ScreenUpdating = .T.
+		.Visible = .T.
+	Endwith
+
+	Release oExcel
+	
+	lReturnValue = .T.
+	
+	On Error && restore error handle
+	
+	Return lReturnValue 
+Endfunc
+*------
+Procedure itRunBox
+	Local shellApp as Object
+	shellApp = CreateObject("Shell.Application")
+	shellApp.FileRun
+EndProc
+*------
+Procedure getCmdResult(cmdString as String)
+	Local cReturnValue as String
+	cReturnValue = ""
+	
+	If !IsValidStr(cmdString) Then
+		Return cReturnValue
+	EndIf
+	
+	Local Wsh as Object
+	Wsh = CreateObject("WScript.Shell")
+	cReturnValue = Wsh.Exec("cmd.exe /c " + cmdString).stdout.readall
+	
+	Return cReturnValue
+EndProc
+*------
+Procedure itQuit(Pid_imageName as Variant, forceClose as Boolean, varAsync as Boolean)
+	If !InList(Vartype(Pid_imageName),Vartype(""), Vartype(0)) or Empty(Pid_imageName) Then
+		Return .F. 
+	EndIf
+	
+	Local lReturn,cCommand
+	If Vartype(Pid_imageName)=Vartype(0) then && PID:processid
+		cCommand = "taskkill /PID " + Alltrim(Transform(Pid_imageName,Replicate("9",10))) + " /T" && /PID:processid ½ø³ÌµÄPID£¬/T °üº¬ÆôÓÃµÄ×Ó½ø³Ì
+	Else && imageName
+		If Empty(JustExt(Pid_imageName)) Then
+			Pid_imageName = ForceExt(Pid_imageName,"exe") && Default set as exe files
+		EndIf
+		cCommand = "taskkill /IM " + Pid_imageName + " /T" && /im:imageName½ø³ÌµÄÓ³ÏñÃû³Æ£¬/t °üº¬ÆôÓÃµÄ×Ó½ø³Ì
+	EndIf
+	If forceClose Then
+		cCommand = cCommand + " /f" && /f Ç¿ÖÆÖÕÖ¹½ø³Ì
+	EndIf
+	
+	lReturn = ItRun(cCommand, 0, varAsync)
+	
+	Return lReturn
+EndProc
+*------
+Function getPIDbyCaption(windowCaption as String)
+	If vartype(windowCaption)<>Vartype("") or Empty(windowCaption) Then
+		Return .F.
+	EndIf
+	
+	Local nReturn, nHwnd, nPID, nThread_id
+	Try
+		Declare Integer FindWindow IN user32 As FindWindowA String lpClassName, String lpWindowName
+		Declare Integer GetParent IN user32 As GetParent Integer hwnd
+		Declare Integer GetWindowThreadProcessId IN user32 As GetWindowThreadProcessId Integer hwnd, Integer @lpdwProcessId
+		nHwnd= FindWindowA(null,windowCaption)
+		If GetParent(nHwnd) = 0 Then && Èç¹ûÊÇ¶¥¼¶´°¿Ú
+			nPID = 0
+			nThread_id = GetWindowThreadProcessId(nHwnd, @nPID) && È¡¸Ã´°¿ÚËùÊôµÄ½ø³ÌID£¬±£´æ·Åµ½±äÁ¿nPID (@nPID)
+			nReturn = nPID
+		EndIf
+	Catch
+		nReturn = 0
+	Finally
+		Clear Dlls GetWindowThreadProcessId, GetParent, FindWindowA 
+	EndTry
+	
+	Return nReturn
+EndFunc
+*------
+Function itCloseWindow(windowName  as String)
+	Local lReturn
+	
+	If !IsValidStr(windowName ) Then
+		Return lReturn
+	EndIf
+
+	Declare Integer FindWindow IN user32 As FindWindowA String lpClassName, String lpWindowName	
+	Declare Integer SendMessage IN user32 As SendMessageA Integer hwnd, Integer wMsg ,Integer wParam ,Any @lParam 
+	
+	Try
+		Local WM_CLOSE
+		WM_CLOSE = 0x10
+		lReturn = SendMessageA(FindWindowA(null,windowName ), WM_CLOSE, 0)
+	Catch
+	Finally
+		Clear Dlls SendMessageA ,FindWindowA 
+	EndTry
+	
+	Return lReturn
+EndFunc
+*------
+Function translate(textString as String,targetLang as string,sourceLang as string,apiKey as String,url as string)
+	Local returnValue
+	returnValue = ""
+	
+	* Checking the parameters list or set the default value
+	If Vartype(textString)<>Vartype("") or Empty(textString) then
+		Return returnValue
+	EndIf
+	If Vartype(targetLang)<>Vartype("") or Empty(targetLang) then
+		targetLang = "auto"
+	EndIf	
+	If Vartype(sourceLang)<>Vartype("") or Empty(sourceLang) then
+		sourceLang= "auto"
+	EndIf
+	If Vartype(apiKey)<>Vartype("") or Empty(apiKey ) then
+		apiKey = "gUU9acvhk1ebKCoN5TimUMvC"
+	EndIf
+	If Vartype(url )<>Vartype("") or Empty(url ) then
+		url = "http://openapi.baidu.com/public/2.0/bmt/translate"
+	EndIf
+	
+	* Program
+	url = url + "?client_id=" + apiKey 
+	url = url + "&q=" + textString
+	url = url + "&from=" + sourceLang 
+	url = url + "&to=" + targetLang 
+
+	* json result
+	Local jsonResult 
+	jsonResult = httpGet(url)
+	returnValue = getJsonValue(jsonResult ,"","trans_result","dst")
+
+	* return
+	Return returnValue
+EndFunc
+*------
+Function translateBing(textString as String,langFrom as string,langTo as string,accessToken as String,url as string)
+	Local returnValue
+	returnValue = ""   
+	
+	* Question: Ð´¸ö½Å²½²âÊÔÒ»ÏÂµ± access_token »¹Ê£ÏÂ1Ãë»ò0ÃëµÄÊ±ºò·­Òë£¬»á²»»á¹ýÆÚ£¿ ÓÐÐ§ÆÚ600Ãëµ½µ×ÊÇÔõÃ´¼õµÄ£¿
+	
+	* Checking the parameters list or set the default value
+	If !IsValidStr(textString) Then
+		Return returnValue
+	Else
+		textString = jsFunction("urlEncode",textString)
+	EndIf
+	langFrom = defString(langFrom, "en",.T.)
+	langTo = defString(langTo, "zh-CHS")
+	accessToken = defString(accessToken, "Bearer" + " " + getBingAccessToken())
+	url = defString(url,"http://api.microsofttranslator.com/V2/Ajax.svc/Translate")
+	*url = defString(url,"http://api.microsofttranslator.com/V2/Http.svc/Translate")
+
+	* Program
+	*url = url + "appId=" + jsFunction("urlEncode",accessToken) 
+	url = url + "?text=" + textString + "&from=" + langFrom + "&to=" + langTo
+
+	Local WinHttp as Object
+	WinHttp = Createobject("WinHttp.WinHttpRequest.5.1")
+	WinHttp.Open( "get", url, .F.)
+	WinHttp.setRequestHeader("Authorization", accessToken)
+	WinHttp.setRequestHeader("Content-Type","text/xml") && "application/x-www-form-urlencoded"
+	WinHttp.send()
+	returnValue = WinHttp.responseText
+	If Leftc(returnValue,1)="?" then
+		returnValue = Rightc(returnValue, Lenc(returnValue)-1)
+	EndIf
+
+	If Leftc(returnValue,1)=["] and Rightc(returnValue,1)=["] then
+		returnValue = Evaluate(returnValue) && StrExtract(returnValue,["],["])
+	EndIf
+	
+	* return
+	Return returnValue
+EndFunc
+*------
+Function getBingAccessToken(client_id as String,client_secret as String,scope as String,grant_type as String,postUrl as String)
+	If Vartype(pLast_Token_Time)=='T' and Vartype(pLast_Access_Token)=='C' and Vartype(pExpires_In_Seconds)=='N' and (Datetime()<pLast_Token_Time + pExpires_In_Seconds )then
+		&& The access_token already stored. And check it if not expiresed.
+		?"remain seconds£º",Alltrim(Str(pExpires_In_Seconds - (Datetime()-pLast_Token_Time)))
+		?
+		return pLast_Access_Token
+	Else
+		Local cReturn
+		cReturn = ""
+		If Vartype(client_id )<>Vartype("") or Empty(client_id) then
+			client_id = "translator_for_andy"
+		EndIf
+		client_id = jsFunction("urlEncode",client_id)
+				
+		If Vartype(client_secret)<>Vartype("") or Empty(client_secret) then
+			client_secret = "XraYcUENznzldjqSKnFLe4VwyrL32yT2RHsBgMCWeWE="
+		EndIf
+		client_secret = jsFunction("urlEncode",client_secret)
+		
+		If Vartype(scope)<>Vartype("") or Empty(scope) then
+			scope = "http://api.microsofttranslator.com"
+		EndIf
+		*scope = jsFunction("urlEncode",scope)
+		
+		If Vartype(grant_type)<>Vartype("") or Empty(grant_type) then
+			grant_type = "client_credentials"
+		EndIf
+		*grant_type = jsFunction("urlEncode",grant_type)
+		
+		If Vartype(postUrl)<>Vartype("") or Empty(postUrl) then
+			postUrl= "https://datamarket.accesscontrol.windows.net/v2/OAuth2-13"
+		EndIf
+		
+		Local postData,postResult
+		postData = "grant_type=client_credentials" + [&] + "client_id="+client_id + [&] + "client_secret="+client_secret + [&] + "scope=http://api.microsofttranslator.com"
+		
+		Local WinHttp as Object
+		WinHttp = Createobject("WinHttp.WinHttpRequest.5.1")
+		WinHttp.Open( "post", postUrl,.F.)
+		WinHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded")
+		WinHttp.send(postData)
+		postResult = WinHttp.responseText
+
+		* delete the old access_token information if it already defined. otherwise it will show error "Illegal redefinition of variable [variableName]".
+		If Vartype(pLast_Token_Time)='T' Then
+			Release pLast_Token_Time
+		EndIf
+		If Vartype(pLast_Access_Token)='C' Then
+			Release pLast_Access_Token
+		EndIf
+		If Vartype(pExpires_In_Seconds)='N'then
+			Release pExpires_In_Seconds
+		EndIf
+		* define the public variable to store the access_token information.
+		Public pLast_Token_Time as Datetime,pLast_Access_Token as String,pExpires_In_Seconds as Integer
+		pLast_Token_Time = Datetime()
+		pLast_Access_Token = getJsonValue(postResult,"","access_token")
+		pExpires_In_Seconds = Val(getJsonValue(postResult,"","expires_in")) && 600 seconds default.
+		cReturn = pLast_Access_Token 
+	EndIf
+	
+	Return cReturn
+Endfunc
+*------
+Function jsGetFuncCode(functionName as String)
+	Local cReturn
+	cReturn = ""
+	
+	If Vartype(functionName)<>Vartype("") or Empty(functionName) then
+		Return cReturn
+	Else
+		functionName = Alltrim(functionName)
+	EndIf
+	
+	Do case 
+	Case Upper(functionName) == Upper("test")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(a,b,c) { return a+b+c;}
+		EndText
+	Case Upper(functionName) == Upper("unicodeToStringTest")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(){
+				// return ÄãºÃ£¬ÎÒÊÇÔÚ°ì¹«ÊÒ¹¤×÷£¬±àÐ´·­Òë³ÌÐò¡£
+				return "\u4f60\u597d\uff0c\u6211\u662f\u5728\u529e\u516c\u5ba4\u5de5\u4f5c\uff0c\u7f16\u5199\u7ffb\u8bd1\u7a0b\u5e8f\u3002";
+			}
+		EndText
+	Case Upper(functionName) == Upper("stringToUnicode")
+		Text to cReturn noshow textmerge
+			// the function code generated by <<Version()>> at <<Alltrim(Dtoc(Date()))>>
+			function <<functionName>>(str, cssType) {
+				var i = 0,
+					l = str.length,
+					result = [], //×ª»»ºóµÄ½á¹ûÊý×é
+					unicodePrefix, //unicodeÇ°×º (example:\1234||\u1234)
+					unicode16; //×ª»»³É16½øÖÆºóµÄunicode
+
+				//Èç¹ûÊÇcssÖÐÊ¹ÓÃ¸ñÊ½Îª\1234Ö®Àà
+				unicodePrefix = (cssType && cssType.toLowerCase() === 'css') ? '\\' : '\\u';
+
+				for (; i < l; i++) {
+					//×ªÎª16½øÖÆµÄunicode, js¼°cssÀïÐë×ª³É16½øÖÆ
+					unicode16 = str.charCodeAt(i).toString(16).toUpperCase();
+					result.push( unicodePrefix + unicode16 );
+				}
+
+				return result.join('');
+			}
+		EndText
+	Case Upper(functionName) == Upper("unicodeToString")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(str) {
+				return (str.replace(/\\/g, "%"));
+			}
+		EndText
+	Case Upper(functionName) == Upper("isValidJsonString")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(jsonString) {
+				try{
+					var jsonObj = eval("(" + jsonString + ")" );
+				}catch(err){
+					return false;
+				}finally{return true;}
+			}
+		EndText
+	Case Upper(functionName) == Upper("JsonSerializer")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(jsonString) {
+				// Json ÐòÁÐ»¯£¬²ÎÊý´«ÈëJson×Ö·û´®£¬return Json Object
+				var jsonObj = eval("(" + jsonString + ")" );
+				return jsonObj;
+			}
+		EndText
+	Case Upper(functionName) == Upper("jsonGetKeys")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(jsonObj) {
+				var keys = new Array(); 
+				for (var i in jsonObj) {
+					keys.push(i); 
+				}
+				return keys; 
+			}
+		EndText
+	Case Upper(functionName) == Upper("jsonGetProperty")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(jsonObj, propertyName) {
+				return jsonObj[propertyName]; 
+			}
+		EndText
+	Case Upper(functionName) == Upper("jsonStringGetValue")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(jsonString, keyName) {
+				var jsonObj = eval("("+jsonString+")");
+				return jsonObj[keyName]; 
+			}
+		EndText
+	Case Upper(functionName) == Upper("jsonGetValue")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(jsonString, js_recordStart, js_recordEnd){
+				var obj = eval(t3);  
+				var fn_return = "";
+				for(var i=0;i<obj.length;i++){  
+					for(var j=0;j<obj[i].length;j++){  
+						alert(obj[i][j]);  
+						fn_return = fn_return + ',' + obj[i][j];
+					}  
+			   }
+			   
+			   return fn_return
+			}
+		EndText
+	Case Upper(functionName) == Upper("urlEncode")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(str)
+			{
+			    var ret = "";
+			    var strSpecial = "!\"#$%&’()*+,/:;<=>?[]^`{|}~%";
+			    var tt = "";
+			    for(var i = 0; i < str.length; i++)
+			    {
+			        var chr = str.charAt(i);
+			        var c = str2asc(chr);
+			        tt += chr + ":" + c + "n";
+			        if (parseInt("0x" + c) > 0x7f)
+			        {
+			            ret += "%" + c.slice(0,2) + "%" + c.slice(-2);
+			        }
+			        else
+			        {
+			            if (chr == " ")
+			                ret += "+";
+			            else if (strSpecial.indexOf(chr) != -1)
+			                ret += "%" + c.toString(16);
+			            else
+			                ret += chr;
+			        }
+			    }
+			   
+			    return ret;
+			}
+			function str2asc(str){
+			    return str.charCodeAt(0).toString(16);
+			}		
+		EndText
+	Case Upper(functionName) == Upper("urlDecode")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(str)
+			{
+			    var ret = "";
+			    for (var i = 0; i < str.length; i++)
+			    {
+			        var chr = str.charAt(i);
+			        if (chr == "+")
+			        {
+			            ret += " ";
+			        }
+			        else if (chr == "%")
+			        {
+			            var asc = str.substring(i+1, i+3);
+			            if (parseInt("0x"+asc) > 0x7f)
+			            {
+			                ret += asc2str(parseInt("0x" + asc+str.substring(i+4, i+6)));
+			                i += 5;
+			            }
+			            else
+			            {
+			                ret += asc2str(parseInt("0x"+asc));
+			                i += 2;
+			            }
+			        }
+			        else
+			        {
+			            ret += chr;
+			        }
+			    }
+			   
+			    return ret;
+			}		
+			function asc2str(str){
+			    return String.fromCharCode(str);
+			}				
+		EndText		
+	Case Upper(functionName) == Upper("encodeURIComponent")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(str) {
+				return encodeURIComponent(str); 
+			}
+		EndText
+	Case Upper(functionName) == Upper("decodeURIComponent")
+		Text to cReturn noshow textmerge
+			function <<functionName>>(str) {
+				return decodeURIComponent(str); 
+			}
+		EndText				
+	Otherwise
+		cReturn = ""
+	EndCase
+
+	Return cReturn
+EndFunc
+*------
+Function createJs()
+	Local oAppName 
+	oAppName = Createobject('ScriptControl')
+	oAppName.Language = "JScript" && JavaScript
+	
+	Return oAppName
+Endproc
+*------
+Function jsFunction(functionName as String,parameter1,parameter2,parameter3,parameter4,parameter5,parameter6,parameter7,parameter8,parameter9,parameter10)
+	Local vReturn 
+	
+	Local jsFunctionCode
+	jsFunctionCode = jsGetFuncCode(functionName)
+	If !Empty(jsFunctionCode) then
+		oJS = CreateJS()
+		oJS.AddCode(jsFunctionCode)
+		Local oJsRunExp 
+		If pcount()>1 then
+			oJsRunExp = [oJS.Run("] + functionName + ["]
+			Local nTag
+			For nTag = 2 to pcount()
+				oJsRunExp = oJsRunExp + [, ] + ("parameter" + Alltrim(Str(ntag-1)))
+			EndFor
+			oJsRunExp = oJsRunExp + [)]
+		Else
+			oJsRunExp = [oJS.Run("] + functionName + [")]		
+		EndIf
+		
+		vReturn= _vfp.Eval(oJsRunExp) && &oJsRunExp. can be run right but EXECSCRIPT(oJsRunExp) will run error
+	EndIf
+	
+	Return vReturn
+EndFunc
+*------
+&& jsEval("typeof(1)") && number ,  jsEval("1+1>2") && .F.
+Function jsEval(jsCmd as String)
+	Local vReturn
+	vReturn = ""
+	
+	If Vartype(jsCmd)<>Vartype("") or Empty(jsCmd) Then
+		Return vReturn
+	EndIf
+	
+	Local oJS
+	oJs = CreateJs()
+	vReturn = ojs.eval(jsCmd)
+	
+	&& ojs.ExecuteStatement("a=100") 
+	&& ?ojs.eval(a+100) && 200
+	
+	Return vReturn
+EndFunc
+*------
+Function vbsFunction(functionName as String,parameterListExpression as string)
+EndFunc
+*------
+Procedure ExcelClose(oExcelObj)
+	If isExcelobject(oExcelObj) Then
+		Try
+			oExcelObj.ActiveWorkbook.Close(.F.)
+		Catch
+			* Do nothing
+		Finally
+			oExcelObj.Quit
+		EndTry
+	EndIf
+EndProc
+*------
+Procedure ExitSystem
+	Lparameters lRunCancel
+	If MessageBox('Do you want to exit the system now ?',4+32,'Warning') = 6 Then && Yes
+		If lRunCancel
+ 			Cancel
+ 		EndIf
+		Clear Events 
+		Clear Dlls
+		* Clear All && When the activeform is run time that will prompt error if run this line code.
+ 		Release All Extended
+
+		Quit
+		
+		Return .T.
+	Else
+		Return .F.
+	EndIf
+EndProc
+*------
+Function error_process
+	PARAMETER LHANDLER , LMESSAGE , LPOSITION , LLINE , LPROCODE
+	ERROR_YN = .T.
+	DO CASE
+		CASE LHANDLER = 109 .OR. LHANDLER = 108
+			IF CURSORGETPROP('BUFFERING') > 1
+				= TABLEREVERT()
+			ENDIF
+			= MESSAGEBOX('Other user is editing this record !' + CHR(13) + CHR(13) +  ;
+					'This process will be cancelled!',48,'ERROR MESSAGE')
+		CASE LHANDLER = 1884
+			IF CURSORGETPROP('BUFFERING') > 1
+				= TABLEREVERT()
+			ENDIF
+			= MESSAGEBOX('This primary key already exists !' + CHR(13) + CHR(13) +  ;
+					'This process will be cancelled!',48,'ERROR MESSAGE')
+		CASE LHANDLER = 1585
+			IF CURSORGETPROP('BUFFERING') > 1
+				= TABLEREVERT()
+			ENDIF
+			= MESSAGEBOX('Other user is editing this record !' + CHR(13) + CHR(13) +  ;
+					'This process will be cancelled!',48,'ERROR MESSAGE')
+		CASE LHANDLER = 1582 .OR. LHANDLER = 1502 .OR. LHANDLER = 1539
+			IF CURSORGETPROP('BUFFERING') > 1
+				= TABLEREVERT()
+			ENDIF
+		CASE LHANDLER = 1104
+			IF CURSORGETPROP('BUFFERING') > 1
+				= TABLEREVERT()
+			ENDIF
+			= MESSAGEBOX('Data reading error due to networking problem or harddisk reading failure !' +  ;
+					CHR(13) +  ;
+					CHR(13) +  ;
+					'System will be shutdown!',48,'ERROR MESSAGE')
+			= ExitSystem()
+		CASE LHANDLER = 2005 .OR. LHANDLER = 1705
+			= MESSAGEBOX('Error code 2005/1705: ' + LTRIM(STR(LHANDLER,5)) + CHR(13) + 'Reason: ' + LMESSAGE +  ;
+					CHR(13) +  ;
+					'Error code:' +  ;
+					LPROCODE +  ;
+					CHR(13) +  ;
+					CHR(13) +  ;
+					'Line number :' +  ;
+					LPOSITION +  ;
+					'(' +  ;
+					LTRIM(STR(LLINE,4)) +  ;
+					'ÐÐ)' +  ;
+					CHR(13) +  ;
+					'erritm:',48,'ERROR MESSAGE')
+		Otherwise
+
+			errorHandle = Messagebox(;
+										'Position : ' + Proper(LPOSITION) + ' (' + Alltrim(Str(LLINE,4)) + ' line)'+ Chr(13) + Replicate('-',50) + Chr(13) + ;
+										'Number: ' + Ltrim(Str(LHANDLER,5)) + CHR(13)+ ;
+										'Reason: ' + Proper(LMESSAGE) + Chr(13) +  ;
+										'Code: ' +  Message(1) + Chr(13) + Replicate('-',50)+ Chr(13) +;
+										'For more support pls kindly help to catch this error information and contact the system administrator.';
+							,2+48+512,'Error Message')
+			Do	Case
+			Case errorHandle = 3 && Abort
+				&& Cancel
+				If Not ExitSystem(.T.) Then
+					do error_process with LHANDLER,LMESSAGE ,LPOSITION ,LLINE ,LPROCODE && On Error return
+				EndIf
+			Case errorHandle = 4 && Retry
+				Retry
+			Case errorHandle = 5 && Ignore
+				Return
+			EndCase						
+	ENDCASE
+	_ISERROR = .T.
+	RETURN
+EndProc
+*------
+Procedure adodbMySqlConnect(LcServer as String,LcDatabase as String,LcUserID as String,LcPassword as String) 
+	* set default return value
+	oAdodb = null
+	
+	* checking the parameter
+	LcServer=defString(LcServer,GetComputerName())
+	LcDatabase=defString(LcDatabase,'mysql')
+	LcUserId=defString(LcUserID,'root')
+	LcPassword=defString(LcPassword,'123456',.T.)
+	
+	* building the connection string
+	Local LcConnectExpression,LcTempConnectHandle
+	LcConnectExpression=	"driver={MySQL ODBC 5.3 ANSI Driver};" + 	;
+							"Server=&LcServer;"+ 	;
+							"database=&LcDatabase;"+;	
+							"chartset=utf8;"+;					
+							"Uid=&LcUserID;"+		;
+							"pwd=&LcPassword"
+	
+	* Connect the Adodb
+	oAdodb = CreateObject("Adodb.Connection")
+	oAdodb.Open(LcConnectExpression)
+	
+	Return oAdodb
+EndProc
+*------
+Procedure adodbExecute(adoObj as Object,commandStr as String)
+	Local xReturn
+	xReturn = null
+	
+	*Local oRS as ADODB.Recordset
+	Try
+		oRS = adoObj.Execute(commandStr)
+		
+		* Build the json expression as string
+		If !oRS.Bof() and !oRS.Eof() Then
+			xReturn = '[{'
+			Do while !oRS.Bof() and !oRS.Eof() Then
+				For nTag = 0 to oRS.Fields.Count
+					xReturn = "error question pause"
+				EndFor
+			EndDo
+			xReturn = Leftc(xReturn,Lenc(xReturn)-1)
+			xReturn = xReturn + '}]'
+		EndIf
+	Catch to oErr
+		xReturn = oErr.Message 	
+		If ']' $ xReturn Then && MySql error information
+			xReturn = Substrc(xReturn,Ratc(']',xReturn)+1)
+		EndIf
+	EndTry
+	
+	Return xReturn
+EndProc
+*------
+Procedure itDestroy(nSelect as Integer)
+	* Check the file if exist
+	Local destroyFile
+	If !File('Destroy.exe') Then
+		Return 0
+	Else
+		destroyFile = Strtran(Locfile('Destroy.exe'),'\','\\')
+	EndIf
+	
+	* Check the parameter
+	If Vartype(nSelect)<>Vartype(0) or !Between(nSelect,1,9)
+		nSelect = 1 && Set default value
+	EndIf
+	
+	* Open the game now
+	Declare Integer FindWindow IN user32 As FindWindowA String lpClassName, String lpWindowName
+	Declare Integer SwitchToThisWindow in user32 as SwitchToThisWindow integer hwnd
+	Declare integer ShellExecute IN shell32.DLL integer hwnd,string,string lpszFile,string,string,integer
+	Declare integer PostMessage IN user32 As PostMessageA Integer hwnd ,Integer wMsg ,Integer wParam ,Integer lParam
+	
+	destroyCaption = "Desktop Games;   (c) Ing. Miroslav Nemecek, www.gemtree.com;   freeware"
+	nHandle = FindWindowA(null,destroyCaption)
+	If nHandle = 0 Then
+		If ShellExecute(0,"open",destroyFile,"","",1)>= 32 Then
+			nHandle = FindWindowA(null,destroyCaption )	
+			Do while !nHandle>0 
+				nHandle = FindWindowA(null,destroyCaption )	
+				If nHandle >0 then
+					Exit
+				EndIf
+			EndDo
+		EndIf
+	EndIf
+	
+	* Initial the game now
+	SwitchToThisWindow(nHandle)
+	WM_KEYDOWN = 0x100
+	WM_KEYUP = 0x101
+	PostMessageA(nHandle,WM_KEYDOWN,Asc('0'),0) && Initial wap
+	PostMessageA(nHandle,WM_KEYDOWN,Asc(Alltrim(Str(nSelect))),0) && Select wap
+	
+	Return nHandle 
+EndProc
+*------
+Function AddressOf(ProcStr,lpAddress)
+    PRIVATE lcCmd,lhHeap,lpHookCmd,lhModule,lpSysAlloc,lpSysFree,lcHookBinCode,lpHookAddress
+    Declare Long HeapCreate In "Kernel32.dll" Long flOptions, Long dwInitialSize, Long dwMaximumSize
+    DECLARE long HeapDestroy IN WIN32API long
+    Declare Long HeapAlloc In "Kernel32.dll" Long hHeap, Long dwFlags, Long dwBytes
+    Declare Long LoadLibrary In "Kernel32.dll" String lpszLibFile
+    Declare Long FreeLibrary In "Kernel32.dll" Long hLibModule
+    Declare Long GetProcAddress In "Kernel32.dll" Long hModule, String lpProcName
+    lcCmd =  StrConv(ProcStr+Chr(0),5)    &&????????UNICODE
+    lhHeap = HeapCreate(0, 512*8, 512*8)  &&????
+    lpHookCmd = HeapAlloc(m.lhHeap, 0, Len(m.lcCmd)) 
+    Sys(2600, m.lpHookCmd, Len(m.lcCmd), m.lcCmd)
+    lhModule = LoadLibrary("oleaut32")
+    lpSysAlloc = GetProcAddress(m.lhModule, "SysAllocString" )
+    lpSysFree = GetProcAddress(m.lhModule, "SysFreeString")
+    FreeLibrary(m.lhModule)
+    lcHookBinCode=0h558BEC81EC600000008B450850B8+BinToC(m.lpHookCmd, "4rs");
+        +0h50B8+BinToC(m.lpSysAlloc, "4rs");
+        +0hFFD08945F050B8+BinToC(Sys(3095, _vfp), "4rs");
+        +0h508B000584000000FF1083F800B8+BinToC(m.lpSysFree, "4rs");
+        +0hFFD0B8000000008BE55DC20800
+    lpHookAddress = HeapAlloc(m.lhHeap, 0, Len(m.lcHookBinCode))
+    Sys(2600, m.lpHookAddress, Len(m.lcHookBinCode), m.lcHookBinCode)
+
+    Return lhHeap
+EndFunc
+*------
+Function StrToBase64(strExp as String)
+	Local cReturn
+	cReturn= ""
+	
+	If Vartype(strExp )=Vartype("") Then
+		cReturn = Strconv(strExp,13)
+	EndIf
+	
+	Return cReturn
+EndFunc
+*------
+Function Base64ToStr(strExp as String)
+		Local cReturn
+	cReturn= ""
+	
+	If Vartype(strExp )=Vartype("") Then
+		cReturn = Strconv(strExp,14)
+	EndIf
+	
+	Return cReturn
+EndFunc
+*------
+Function getImageText(imageFilePath as String, lineTag as String)
+	Local cReturn
+	cReturn = ""
+	
+	If Vartype(imageFilePath)<>Vartype("") or !File(imageFilePath) then
+		Return cReturn
+	EndIf
+	
+	Local imageBase64UrlCode
+	imageBase64UrlCode = jsFunction("urlEncode",strtoBase64(FileToStr(imageFilePath)))
+	
+	* Program
+	Local url,baiduApiKey,sendData
+	url = "http://apis.baidu.com/apistore/idlocr/ocr"
+	baiduApiKey = "12d122f27e5c97fd99ad8388e1f7af33"
+	sendData = 				"fromdevice" + "=" + "pc"
+	sendData = sendData  + "&clientip=" + "10.10.10.0"
+	sendData = sendData  + "&detecttype=" + "LocateRecognize"
+	sendData = sendData  + "&languagetype=" + "CHN_ENG"
+	sendData = sendData  + "&imagetype=" + "1"
+	sendData = sendData  + "&image=" + imageBase64UrlCode 
+	
+	Local WinHttp as Object
+	WinHttp = Createobject("WinHttp.WinHttpRequest.5.1")
+	WinHttp.Open( "post", url,.F.)
+	WinHttp.setRequestHeader("Content-Type","application/x-www-form-urlencoded")
+	WinHttp.setRequestHeader("apikey",baiduApiKey)
+	WinHttp.send(sendData)
+	cReturn = getJsonValue(WinHttp.responseText,lineTag,"retData","word")
+
+	Return cReturn
+EndFunc
+*------
+Function getJsonValue(jsonResult, linkTag, property1,property2,property3,property4,property5,property6,property7,property8,property9,property10)
+	Local cReturn
+	cReturn = ""
+	
+	* Check the parameters
+	If Vartype(linkTag)<>Vartype("") then
+		linkTag = Chr(10) + Chr(13) && Set the new line as default
+	EndIf
+
+	Local propertyCount
+	propertyCount = Pcount()-2
+	If propertyCount<=0 then
+		Return cReturn && No property as parameter sent in this function
+	EndIf
+	
+	&& get the dst from json result
+	Local oJson
+	oJson = jsFunction("JsonSerializer",jsonResult)
+	
+	Try && But Can not set the return statement betweenn in Try ... EndTry
+		If propertyCount = 1then && Just 1th node of property
+			cReturn = jsFunction("JsonGetProperty", oJson, Evaluate("property1"))
+		Else && >1 Multi nodes of property
+			* Got the treeLength - 1 as oJson
+			Local propertyTag,cTag
+			For propertyTag = 1 to propertyCount - 1
+				cTag= "property" + Alltrim(Str(propertyTag))
+				oJson = jsFunction("JsonGetProperty",oJson ,Evaluate(cTag))
+			EndFor
+			
+			* Extract value(s) from the oJson base on the last property
+			Local resultTag,cReturnItem
+			For resultTag = 1 to oJson.length
+				oJsonResult = jsFunction("JsonGetProperty", oJson ,Alltrim(Str(resultTag-1)))
+				cReturnItem = jsFunction("JsonGetProperty", oJsonResult, Evaluate("property"+Alltrim(Str(propertyCount)))) && get last property value
+				If resultTag = 1 then
+					cReturn = cReturnItem 
+				Else
+					cReturn = cReturn + linkTag + cReturnItem
+				EndIf
+			EndFor
+		Endif
+	Catch to err
+		* Set the result empty when error found.
+		cReturn = ""
+	Finally
+		* Whenever if the error found, It will run this statement still.
+		If Vartype(cReturn)<>Vartype("") then
+			cReturn = "" && Maybe it got the jsonObject as return value
+		EndIf
+	EndTry 
+	
+	Return cReturn
+EndFunc
+*------
+Function searchImageByText()
+
+EndFunc
+*------
+Function setVBAWarningsState
+	Lparameters lState,cVersion
+	If Pcount()=0 or Vartype(lState)<>Vartype(.T.) Then
+		Return lReturn
+	EndIf
+		
+	Try
+		Local oExcel,securityKey 
+		If !IsValidStr(cVersion) Then
+			oExcel = CreateExcel()
+			cVersion = oExcel.Version
+		EndIf
+		securityKey = Strtran("HKEY_CURRENT_USER\Software\Microsoft\Office\%Version%\Excel\Security","%Version%",cVersion)
+		lReturn = IsNull(itRegWrite(securityKey + "\VBAWarnings",Iif(lState,1,2),"REG_DWORD")) && It will return null if itRegWrite successfull.
+	Catch
+		lReturn = .F. && That's means error found ,Set failed.
+	Finally
+		Release oExcel
+	EndTry
+	
+	Return lReturn
+EndFunc
+*------
+Function itRegDelete(regName As String)
+	Local oWScript,vReturn
+    oWScript = CreateObject("WScript.Shell")
+    Try
+		vReturn = oWScript.RegDelete(regName)
+	Catch
+	Finally
+		Release oWScript
+	EndTry
+	
+	Return vReturn
+EndFunc
+*------
+Function itRegRead(regName As String)
+	Local oWScript,vReturn
+    oWScript = CreateObject("WScript.Shell")
+    Try
+		vReturn = oWScript.RegRead(regName)
+	Catch
+	Finally
+		Release oWScript
+	EndTry
+	
+	Return vReturn
+EndFunc
+*------
+Function itRegWrite(regName As String, regValue as Variant, valueType As String)
+	Local oWScript,vReturn
+	valueType = defString(valueType, "REG_SZ") && REG_SZ, REG_DWORD, REG_BINARY, REG_MULTI_SZ
+	
+    oWScript = CreateObject("WScript.Shell")
+    Try
+		vReturn = oWScript.RegWrite(regName, regValue, valueType)
+	Catch
+	Finally
+		Release oWScript
+	EndTry
+	
+	Return vReturn
+EndFunc
+*------
+Procedure DeleteFolder
+	Lparameters cPath, lHidePrompt
+	
+	If !IsValidStr(cPath) or !Directory(cPath) Then
+		Return .F.
+	EndIf
+	
+	If !lHidePrompt Then
+		If MessageBox("Are you sure want to delete the folder '" + cPath + "' ?",4+48+256,"Warning")<>6 or;
+			MessageBox("All of the File(s) in the directory '" + cPath + "' it will be delete. Are you sure wanna do that dangerous work ?",4+16+256,"Warning")<>6 Then
+				Return .F.
+		EndIf
+	EndIf
+	
+	Return ItRun("rd " + cPath + "/s/q", 0)
+EndProc
+*------
+Procedure compileHtml(cSourceCoding as String, lStrictModule as Boolean)
+	* À¨ÔÚÔ²À¨ºÅ(())ÖÐµÄ²ÎÊý½ô¸úÔÚº¯ÊýÃûÖ®ºó£¬±íÊ¾º¯Êý²ÎÊýÊÇ¾Ö²¿·¶Î§µÄ¡£ Óë Lparameters parameterList ×÷ÓÃÒ»ÖÂ
+	If !IsValidStr(cSourceCoding) Then
+		Return ""
+	Else
+		If lStrictModule and Occurs("<%", cSourceCoding ) != Occurs("%>", cSourceCoding) Then
+			* Èç¹ûÑÏ¸ñ¼ì²éµÄ»°£¬Ö»Òª·¢ÏÖ±í´ïÊ½ÖÐ±êÇ©¿ªÊ¼Óë½áÊø·û²»Ò»ÖÂ¾ÍÖ±½ÓÔ´´úÂë·µ»Ø
+			* ·ñÔò¾Í¿´³ÌÐòÄÜÊ¶±ð¶àÉÙ´úÂë¿é¾Í½âÊÍ¶àÉÙ´úÂë¿é£¨Ä¬ÈÏÑ¡Ïî£©¡£	µ± <%(¿ªÊ¼±êÇ©)µÄÊýÁ¿ ÉÙÓÚ %>(½áÊø±êÇ©)µÄÊýÁ¿,ÄÜÕÒ³ö´úÂë¿é³öÀ´½âÊÍ£¬²¢ÓÃ¶àÓàµÄ %>(½áÊø±êÇ©ºöÂÔµô)£¬·ñÔò(¿ªÊ¼±êÇ©Êý > ½áÊø±êÇ©Êý)ÎÞ·¨ÕÒ³ö´úÂë¿é£¬Ïàµ±ÓÚÔ´´úÂë·µ»Ø
+			Return cSourceCoding && The Source Coding Errored.
+		EndIf
+	EndIf
+	
+	local cTagStart1, cTagStart2, cTagEnd, lNesting, cExpression, cRestCoding, cNestingResult, cRunResult, cExpressionValue
+	* ×¢£º±ØÐëµÄÓÃ local ¶¨Òå³É¾Ö²¿±äÁ¿£¬²Å²»»áµ¼ÖÂµÝ¹éµ÷ÓÃ£¨ÏÂ¼¶µ÷ÓÃµÄÊ±ºò£©¸Ä±äÔ­À´(·¢³öµÝ¹éµ÷ÓÃµÄÉÏÒ»²ã)Í¬Ãû±äÁ¿Öµ¸Ä±ä
+	cTagStart1 = "<%"
+	cTagStart2 = "<%="
+	cTagEnd = "%>"
+	* While the tag <% ... %> found
+	Do while !Empty(StrExtract(cSourceCoding, cTagStart1, cTagEnd))
+		lNesting = .F.
+		*<Step1: Extract the expression>*
+		cExpression = StrExtract(cSourceCoding, cTagStart1, cTagEnd, 1, 4)
+		* Checking if it is a nesting expression such as <% <% coding %> %>
+		Do While Occurs("<%", cExpression) > Occurs("%>", cExpression) Then
+			lNesting = .T.
+			cRestCoding = Substrc(cSourceCoding, Atcc(cExpression,cSourceCoding)+Lenc(cExpression))
+			If !Empty(cRestCoding) and Atcc(cTagEnd, cRestCoding)>0 Then
+				cExpression = cExpression + Substrc(cRestCoding, 1, Atcc(cTagEnd, cRestCoding)-1 + Lenc(cTagEnd))
+			Else
+			* No restcoding to analysis or cannot found %> in the restcoding(That's means)
+			* ×¢£ºÇë×¢ÒâÒÔÏÂÂß¼­ÓÅ»¯(¼ò»¯)µÄÔ­Àí
+*!*			If Empty(cRestCoding) Then
+*!*				Return cExpression 
+*!*			Else && !Empty(cRestCoding) and  Atcc(cTagEnd, cRestCoding)=0
+				Return cExpression + cRestCoding
+*!*			EndIf
+			EndIf
+		EndDo
+		
+		
+		*<Step2: Explain the expression>*
+		If lNesting Then 
+			*Nesting call
+			*	ÕâÊÇ³ÌÐòµÝ¹é×ÔÎÒµ÷ÓÃ×î¹Ø¼üµÄÒ»²½Âß¼­£¬Ò²ÊÇ½âÎö<% ... %> ×î¹Ø¼üµÄÒ»²½£¬½«Á½±ßµÄ <% ºÍ %> ÍÑÁË¿ÇÈ¥µô£¬°ÑÀïÃæµÄÄÚÈÝ¶ª½øÈ¥ÔÙ×ÓµÝ¹é
+			*	Ö±µ½ÍÑÍê×îºóÒ»²ã¿Ç (lNesting = .F.)£¬²Å»áÔËÐÐºóÃæµÄ½âÎö´úÂë²¢·µ»ØÉÏÒ»²ã½á¹û£¬ÕâÑù²Å¿ÉÒÔ±£Ö¤ÓÀÔ¶½âÎöË³ÐòÊÇ´Ó×îÉî¡¢×îÀïÃæÒ»²ãÍùÍâÖð½¥½âÎö£¬²¢½«½âÎö·µ»ØÀ´µÄÖµÔÚÉÏÒ»²ãµÄ½á¹ûÖÐÌæ»»µô¡£
+			*	×¢£º±ØÐëµÃÍÑ¿Ç£¨¼´£ºÈ¥µôÁ½±ßµÄTag±êÇ© <% ºÍ %>£©£¬¾ÍÏñ°ÇÁËÒ»²ãÓÖÒ»²ãµÄÆ¤£¬·ñÔò¾ÍÎÞ·¨ÃèÊö²ã´Î£¨Íâ²ãÓëÀï²ã£©Ö®¼äµÄµÝ½ø¹ØÏµ£¬
+			*		ÄÇÃ´Ò²¾ÍÓÀÔ¶Ã»ÓÐ°ì·¨Öð½¥ÍùÀïÕÒµ½×îÉî²ãµÄÄÇÒ»¿é´úÂë½âÎö£¬¾ÍÏàµ±ÓÚµÝ¹é×ÔÎÒÍêÈ«µÄÖØ¸´µ÷ÓÃ->»áËÀÑ­»·->µçÄÔËÀ»ú¡£
+			* ×Ü½á: ÔÚifÓï¾äÀïÊ¹ÓÃµÝ¹éËã·¨¿ÉÒÔ¸Ä±ä if .. else µÄ¶þÑ¡Ò»µÄ·ÇºÚ¼´°×Âß¼­£¬¼´£º¼´Ê¹ÏÈ·Ö³öÁËºÚ°×£¬ÕÕÑù¿ÉÒÔÔÚºÚÀïÃæ·ûºÏÄ³ÖÖÇé¿öÏÂÖ´ÐÐÅÜµ½°×ÀïÃæÈ¥£¬
+			*  		¼´£ºIf Óï¾äÖÐµÄ´úÂë×îÖÕ»áÖ´ÐÐ elseÀïÃæµÄ´úÂë£¨ÖØ¸´¶à²ã×ÔÎÒÅÐ¶Ï£¬Ö±µ½·ûºÏ elseµÄÇé¿ö£©
+			cNestingResult = cTagStart1 + compileHtml(Substrc(cExpression, 3, Lenc(cExpression)-4)) + cTagEnd
+			*!*	Set Step On && Èç¹ûÐèÒªµ÷ÊÔÕâÊÇ×î¹Ø¼üµÄÒ»»·½Ú
+			cSourceCoding = Strtran(cSourceCoding, cExpression, cNestingResult, 1, 1) && ½«ÍÑÍê±êÇ©¿ÇºóµÄ´úÂë½âÎö½á¹ûÌæ»»µô¡£(Ë³ÐòÊÇ´Ó×îÉî²ãµÄ´úÂëÖð½¥ÍùÍâÌæ»»)
+		Else
+			Do Case
+			* Maybe can development and deal with many case in the next time which the syntax like jsp or aspx.
+			Case Leftc(cExpression, 3) = cTagStart2 
+				* Case <%=: Translator the <%= Foxpro Expression %>, Using the foxpro system function which named Evaluate, Need to return a value as the result
+				Try
+					cExpressionValue = Transform(Evaluate(StrExtract(cExpression, cTagStart2, cTagEnd)), "@") && Using the function transform make sure the result toString(), Others type can not be Strtran in the next coding.
+				Catch to xErr
+					cExpressionValue = xErr.Message
+				EndTry
+				cSourceCoding = Strtran(cSourceCoding, cExpression, cExpressionValue, 1, 1)
+			Case Leftc(cExpression, 2) = cTagStart1
+				* Case <%: Translator the <% Foxpro Coding %>, Using the foxpro system function which named ExecScript, Just do some working but no need to get the result
+				Try
+					ExecScript(StrExtract(cExpression, cTagStart1, cTagEnd))
+					cRunResult = ""
+				Catch to xErr
+					cRunResult = xErr.Message
+				EndTry
+				cSourceCoding = Strtran(cSourceCoding, cExpression, cRunResult, 1, 1)				
+			EndCase
+		EndIf
+	EndDo
+	
+	Return cSourceCoding
+EndProc
+*------
+Procedure getStringCode(stringStream as String)
+	Local cReturn
+	cReturn = ""
+	
+	If Vartype(stringStream)<>Vartype("") Then
+		Return cReturn
+	EndIf
+	
+	Local testBinaryString 
+	testBinaryString = Createbinary(Substr(stringStream, 1, 2))
+	Do Case
+	    Case testBinaryString = 0hEFBB    &&VFP6.0²»Ö§³Ö´ËÖÖ·½Ê½£¬´ËÊµÁÐÊÇÔÚVFP9.0+SP2ÏÂ²âÊÔµÄ¡£
+	        cReturn = Upper('UTF-8')
+	    Case testBinaryString = 0hFFFE
+	        cReturn = Upper('Unicode')
+	    Case testBinaryString = 0hFEFF
+	        cReturn = Upper('Unicode big endian')
+	    Otherwise
+	        cReturn = Upper('ANSI')
+	Endcase
+		
+	Return cReturn 
+EndProc
+*------
+Procedure getFileCode(fileName as String)
+	Local cReturn 
+	cReturn = ""
+
+	If IsValidStr(fileName) and File(fileName) Then
+		cReturn = getStringCode(FileToStr(fileName))
+	EndIf
+	
+	Return cReturn
+EndProc
+*------
+Procedure itFileToStr(cFileName as String)
+	If !IsValidStr(cFileName) or !File(cFileName) Then
+		Return ""
+	EndIf
+	
+	Local cFileString, cFileCode
+	cFileString = FileToStr(cFileName)
+	cFileCode = Upper(getFileCode(cFileName))
+
+	Do	Case
+	Case cFileCode == Upper("UTF-8")
+		cFileString = Substr(cFileString, 4) && È¥µô UTF-8µÄBOM£¬Left(cFileString,3)=Chr(0xEF)+Chr(0xBB)+Chr(0xBF)
+		cFileString = Strconv(cFileString, 11) && Convert UTF-8 TO DBCS
+	Case cFileCode == Upper("Unicode")
+		cFileString = Substr(cFileString, 3) && È¥µô Unicode µÄBOM£¬Left(cFileString,2)=Chr(0xFF)+Chr(0xFE)
+		cFileString = Strconv(cFileString, 6) && Convert Unicode to DBCS
+	Case cFileCode == Upper("Unicode big endian")
+		* Step1: Delete the BOM
+		cFileString = Substr(cFileString, 3) && È¥µô Unicode big endianµÄBOM£¬Left(lcUnicodeBigStr,2)=Chr(0xFE)+Chr(0xFF)
+		* Step2: Convert Unicode big endian to Unicode
+		Local cUnicodeStr, nTag
+		cUnicodeStr = ""
+		For nTag = 1 to Len(cFileString) Step 2
+			cUnicodeStr = cUnicodeStr + Substr(cFileString, nTag+1, 1) + Substr(cFileString, nTag, 1)
+		EndFor
+		* Step3: Convert Unicode to DBCS
+		cFileString = Strconv(cUnicodeStr, 6) && Convert Unicode to DBCS
+	Case cFileCode == Upper("ANSI")
+		cFileString = cFileString && Do nothing, No need to convert.
+	EndCase
+	
+	Return cFileString
+EndProc
+*------
+Procedure BuildHtml(cSourceFile as String, cTargetFile as String)	
+	Local lReturn
+	lReturn = .F.
+	If !IsValidStr(cSourceFile) or !File(cSourceFile) Then
+		Return .F.
+	EndIf
+	
+	Local cSourceCoding
+	cSourceCoding = compileHtml(itFileToStr(cSourceFile))
+
+	Try
+		Local cSet_Safety
+		cSet_Safety = Set("Safety")
+		Set Safety off	
+		StrToFile(Strconv(cSourceCoding,9), cTargetFile, 4) && UTF-8
+		lReturn = .T.
+	Catch
+		lReturn = .F.
+	Finally
+		Set Safety &cSet_Safety.
+	EndTry
+
+	Return lReturn 
+EndProc
+*------
+Function ItRunTask(schduleName as string, serverName as string, UserName as String, UserPassword as String)
+	Local cReturn
+	
+	cReturn = getCmdResult("Schtasks /Run /S 192.168.88.88 /U administrator /P 123456 /TN oso_bugs")
+	
+	Return cReturn
+EndFunc
+*------
+Procedure putFname(cFileName as String)
+	If !IsValidStr(cFileName) Then
+		cFileName = AliasName()
+	EndIf
+	
+	Return  ForcePath(cFileName, GetEnv("TEMP"))
+EndProc
+*------
+Procedure getClass(CLSID_Path as String)
+	If !IsValidStr(CLSID_Path) Then
+		CLSID_Path = "HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Wow6432Node\CLSID"
+	EndIf
+	
+	Local cTmpRegFile, cString
+	cTmpRegFile = putFname()
+	If itRun("Regedit /e" + Space(1) + cTmpRegFile + Space(1) + CLSID_Path, 0, .T.) and File(cTmpRegFile) Then
+		cString = ItFileToStr(cTmpRegFile) && UNICODE (wide characters) to DBCS (ANSI)
+	EndIf
+	Delete File (cTmpRegFile)
+	
+	_cliptext = cString
+EndProc
+*------
+Procedure getOutIp
+	* http://www.3322.org/dyndns/getip
+	Return StrExtract(httpGet("http://1111.ip138.com/ic.asp"),"[","]")
+EndProc
+* ------
+Function Navigator(cAlias as String, nTag as Integer)
+	If !isValidStr(cAlias) or Select(cAlias)=0 Then
+		Return .F.
+	EndIf
+	If Vartype(nTag)<>Vartype(0) or !InList(nTag,1,2,3,4) Then
+		Return .F.
+	EndIf
+	
+	Do Case
+	Case nTag = 1 && Goto the first record
+		Goto top in (cAlias)
+		If Bof(cAlias) Then
+			MessageBox("ÔÝÎÞÊý¾Ý¿ÉÌø×ª£¬ÇëÏÈÌí¼Ó¡£",0+48,"ÌáÊ¾")
+			Return .F.
+		Else
+			Return .T.
+		EndIf
+	Case nTag = 2 && Goto the previous record
+		If Bof(cAlias) Then
+			MessageBox("ÔÝÎÞÊý¾Ý¿ÉÌø×ª£¬ÇëÏÈÌí¼Ó¡£",0+48,"ÌáÊ¾")
+			Return .F.
+		Else
+			Skip -1
+			If Bof(cAlias) Then
+				Goto Top in (cAlias)
+				MessageBox("ÒÑ¾­ÊÇµÚÒ»ÌõÊý¾Ý.",0+48,"ÌáÊ¾")
+				Return .F.
+			Else
+				Return .T.
+			EndIf
+		EndIf
+	Case nTag = 3 && Goto the next record
+		If Eof(cAlias) Then
+			MessageBox("ÔÝÎÞÊý¾Ý¿ÉÌø×ª£¬ÇëÏÈÌí¼Ó¡£",0+48,"ÌáÊ¾")
+			Return .F.
+		Else
+			Skip 1
+			If Eof(cAlias) Then
+				Goto Bottom in (cAlias)
+				MessageBox("ÒÑ¾­ÊÇ×îºóÒ»ÌõÊý¾Ý.",0+48,"ÌáÊ¾")
+				Return .F.
+			Else
+				Return .T.
+			EndIf
+		EndIf
+	Case nTag = 4 && Goto the last record
+		Goto bottom in (cAlias)
+		If Eof(cAlias) Then
+			MessageBox("ÔÝÎÞÊý¾Ý¿ÉÌø×ª£¬ÇëÏÈÌí¼Ó¡£",0+48,"ÌáÊ¾")
+			Return .F.
+		Else
+			Return .T.
+		EndIf
+	EndCase
+EndFunc
+* ------
+Function doForm(cFormName as String, lNeedReturn, arg1,arg2,arg3,arg4,arg5)
+	If !isValidStr(cFormName) Then
+		MessageBox("²ÎÊý´íÎó.",0+16,"´ò¿ªÊ§°Ü")
+		Return .F.		
+	EndIf
+	
+	If Wexist(cFormName)
+		*!*	If &cFormName..WindowState = 1 && Minimized
+		*!*		&cFormName..WindowState = 0 && Normal
+		*!*	EndIf
+		*!*	&cFormName..Show() && It will run the event Show(),Activate()
+		Activate Window &cFormName.
+		If _screen.ActiveForm.windowState = 1 Then && Minimized
+			_screen.ActiveForm.windowState = 0 && Normal
+		EndIf
+		*!*	_screen.ActiveForm.Show()
+	Else
+		If lNeedReturn Then
+			Local returnVarname
+			returnVarname = AliasName()
+			Do case
+			Case Pcount()=1 or Pcount()=2
+				Do Form &cFormName. name &cFormName. to &returnVarname. 
+			Case Pcount()=3
+				Do Form &cFormName. name &cFormName. to &returnVarname. with arg1
+			Case Pcount()=4
+				Do Form &cFormName. name &cFormName. to &returnVarname. with arg1,arg2
+			Case Pcount()=5
+				Do Form &cFormName. name &cFormName. to &returnVarname. with arg1,arg2,arg3
+			Case Pcount()=6
+				Do Form &cFormName. name &cFormName. to &returnVarname. with arg1,arg2,arg3,arg4
+			Case Pcount()=7
+				Do Form &cFormName. name &cFormName. to &returnVarname. with arg1,arg2,arg3,arg4,arg5
+			EndCase
+			Return &returnVarname.
+		Else
+			Do case
+			Case Pcount()=1 or Pcount()=2
+				Do Form &cFormName. name &cFormName. 
+			Case Pcount()=3
+				Do Form &cFormName. name &cFormName. with arg1
+			Case Pcount()=4
+				Do Form &cFormName. name &cFormName. with arg1,arg2
+			Case Pcount()=5
+				Do Form &cFormName. name &cFormName. with arg1,arg2,arg3
+			Case Pcount()=6
+				Do Form &cFormName. name &cFormName. with arg1,arg2,arg3,arg4
+			Case Pcount()=7
+				Do Form &cFormName. name &cFormName. with arg1,arg2,arg3,arg4,arg5
+			EndCase
+		EndIf
+	EndIf
+	
+	Return .T.
+EndFunc
+* ------
+Function zapAlias(cAliasName as String)
+	If !IsValidStr(cAliasName) or Select(cAliasName)<=0 Then
+		Return .F.
+	EndIf
+	
+	Local cSet_Safety
+	cSet_Safety = Set("Safety")
+	Set Safety off
+	
+	Try 
+		Zap in (cAliasName)
+	Catch to xErr
+		MessageBox(xErr.lineContents+Chr(13)+xErr.Message,48,"Warning")
+	Finally
+		Set Safety &cSet_Safety.
+	EndTry
+EndFunc
+* ------
+Function itMessage(cMessage as String)
+	Return MessageBox(cMessage,48,"ÌáÊ¾")
+EndFunc
+

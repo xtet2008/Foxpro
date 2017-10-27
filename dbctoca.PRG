@@ -1,0 +1,54 @@
+****????:dbctoca("chaoshi"),chaoshi?vfp??????,???????chaoshi.dbc
+
+Lparameters dbcname
+CLOSE DATABASES
+OPEN DATABASE &dbcname EXCLUSIVE
+DIMENSION gatables(1)
+createc=""
+gatables=''
+m=ADBOBJECTS(gatables, "TABLE")
+IF NOT EMPTY(m)
+    FOR i=1 TO m
+        USE gatables(i) EXCLUSIVE
+        SELECT gatables(i)
+        ziduan=AFIELDS(arrayname)
+        createc=createc+[PUBLIC CursorOb]+gatables(i)+CHR(13)
+        createc=createc+[CursorOb]+gatables(i)+[=createobject("CursorAdapter") ]+CHR(13)
+        createc=createc+[with CursorOb]+gatables(i)+CHR(13)
+        createc=createc+[.Alias ="]+[Cursor]+gatables(i)+["]+CHR(13)
+        createc=createc+[.DataSourceType ="Native"]+CHR(13)
+        createc=createc+[.DataSource ="]+dbcname+["]+CHR(13)
+        createc=createc+[.SelectCmd = "select * from ]+gatables(i)+["]+CHR(13)
+        createc=createc+[.KeyFieldList = "]+arrayname(1,1)+["]+CHR(13)
+        createc=createc+[.cursorschema="]
+        upfieldlist=[TmpList1=""]+CHR(13)
+        upnamelist=[TmpList2=""]+CHR(13)
+        FOR i2=1 TO ziduan
+            createc=createc+arrayname(i2,1)+SPACE(1)+arrayname(i2,2)+SPACE(1)
+            upfieldlist=upfieldlist+[TmpList1=TmpList1+"]+arrayname(i2,1)+[,"]+CHR(13)
+            upnamelist=upnamelist+[TmpList2=TmpList2+"]+arrayname(i2,1)+SPACE(1)+gatables(i)+[.]+arrayname(i2,1)+[,"]+CHR(13)
+            IF AT(arrayname(i2,2),[CNFQV])>0
+                createc=createc+[(]+ALLTRIM(STR(arrayname(i2,3)))+SPACE(1)
+                IF EMPTY(arrayname(i2,4))=.F.
+                    createc=createc+ALLTRIM(STR(arrayname(i2,3)))
+                ENDIF
+                createc=createc+[)]
+            ENDIF
+            createc=createc+[,]
+        ENDFOR
+        createc=LEFT(createc,LEN(createc)-1)+["]++CHR(13)
+        upfieldlist=LEFT(upfieldlist,LEN(upfieldlist)-3)+["]+CHR(13)
+        upnamelist=LEFT(upnamelist,LEN(upnamelist)-3)+["]+CHR(13)
+        createc=createc+[.Tables ="]+gatables(i)+["]+CHR(13)
+        createc=createc+upfieldlist
+        createc=createc+[.UpdatableFieldList = TmpList1]+CHR(13)
+        createc=createc+upnamelist
+        createc=createc+[.UpdateNameList=TmpList2]+CHR(13)
+        createc=createc+[.CursorFill()]+CHR(13)
+        createc=createc+[.cursorrefresh]+CHR(13)
+        createc=createc+[ENDWITH]+CHR(13)
+        USE
+    ENDFOR
+ENDIF
+=STRTOFILE(createc,"cca.prg")&&?????????
+CLOSE DATABASES

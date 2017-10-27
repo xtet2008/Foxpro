@@ -1,0 +1,140 @@
+DECLARE integer LoadLibrary IN WIN32API string
+DECLARE integer FreeLibrary IN WIN32API integer
+DECLARE integer GetProcAddress IN WIN32API integer hModule, string procname
+DECLARE integer GetProcessHeap IN WIN32API
+DECLARE integer HeapAlloc IN WIN32API integer hHeap, integer dwFlags, integer dwBytes
+DECLARE integer HeapFree IN WIN32API integer hHeap&&, integer dwFlags, integer lpMem
+DECLARE integer GetWindowText IN WIN32API integer, string @, integer
+DECLARE integer GetWindowLong IN WIN32API integer, integer
+DECLARE integer EnumChildWindows IN WIN32API integer hWnd, integer lpEnumProc, integer lParam
+DECLARE INTEGER GetClassName IN user32;
+INTEGER   hWnd,;
+STRING @ lpClassName,;
+INTEGER   nMaxCount
+DECLARE INTEGER GetWindowThreadProcessId IN user32;
+INTEGER   hWnd,;
+INTEGER @ lpdwProcId
+********
+DECLARE Long OpenProcess IN kernel32;
+Long dwDesiredAccessas,;
+Long bInheritHandle,;
+Long dwProcId
+DECLARE Long CloseHandle IN kernel32;
+Long hObject
+DECLARE INTEGER GetWindowThreadProcessId IN user32;
+INTEGER   hWnd,;
+INTEGER @ lpdwProcId
+DECLARE INTEGER FindWindowEx IN user32;
+INTEGER hwndParent,;
+INTEGER hwndChildAfter,;
+STRING @ lpszClass,;
+STRING @ lpszWindow
+DECLARE INTEGER FindWindow IN user32;
+STRING lpClassName,;
+STRING lpWindowName
+DECLARE Long VirtualAllocEx IN WIN32API ;
+Long hProcess, Long @ lpAddress, Long dwSize, ;
+Long flAllocationType, Long flProtect
+DECLARE Long VirtualFreeEx IN WIN32API ;
+Long hProcess, Long lpAddress, Long dwSize, Long dwFreeType
+DECLARE INTEGER SendMessage IN user32;
+INTEGER hWnd,;
+INTEGER Msg,;
+INTEGER wParam,;
+INTEGER lParam
+
+DECLARE Integer VirtualQueryEx IN kernel32  ; 
+Integer hProcess , ; 
+Integer lpAddress , ; 
+String @lpBuffer , ; 
+Integer dwLength 
+
+DECLARE Long ReadProcessMemory IN WIN32API ;
+Long hProcess, Long lpBaseAddress, Long lpBuffer, ;
+Long nSize, Long @ lpNumberOfBytesWritten
+************
+
+*制作：行者孙（QQ 310727570） VFP应用程式算法群（12787940）
+LOCAL cCmd,hProcHeap,cCmdnAddr,hModule,nAddr
+CREATE cursor WindHwnds (hWnd i,uText C(254))
+cCmd=STRCONV("INSERT INTO WindHwnds (hWnd) VALUES (%d)"+0h00,5)
+hProcHeap = GetProcessHeap()
+cCmdnAddr = HeapAlloc(hProcHeap, 0,LEN(cCmd)) 
+SYS(2600,cCmdnAddr,LEN(cCmd),cCmd)         
+hModule=LoadLibrary("msvcrt")
+nAddr=GetProcAddress(hModule,"swprintf")
+CallDllCode1=0hB8+BINTOC(nAddr,"4rs")+0hFFD0
+FreeLibrary(hModule)
+hModule=LoadLibrary("oleaut32")
+nAddr=GetProcAddress(hModule,"SysAllocString" )
+CallDllCode2=0hB8+BINTOC(nAddr,"4rs")+0hFFD0
+nAddr=GetProcAddress(hModule,"SysFreeString")
+CallDllCode3=0hB8+BINTOC(nAddr,"4rs")+0hFFD0
+FreeLibrary(hModule)
+sCode=0h558BEC81ECD00700008B450850B8+BINTOC(cCmdnAddr,"4rs")
+sCode=sCode+0h508D45A050+CallDllCode1
+sCode=sCode+0h83C40C8D45A050 +CallDllCode2
+sCode=sCode+0h8945F050B8+BINTOC(SYS(3095,_vfp),"4rs")
+sCode=sCode+0h508B000584000000FF1083F800+CallDllCode3
+sCode=sCode+0hB8010000008BE55DC20800
+AdrCode=HeapAlloc(hProcHeap,0,LEN(sCode))
+SYS(2600,AdrCode,LEN(sCode),sCode)
+EnumChildWindows(0,AdrCode,0)
+HeapFree(hProcHeap)
+FOR i=1 TO RECCOUNT()
+GO i
+nBufsize = 254
+tBuffer = REPLICATE(CHR(0), nBufsize)
+cBuffer = REPLICATE(CHR(0), nBufsize)
+nBufsize = GetWindowText(hWnd,@tBuffer, nBufsize)
+GetClassName(hWnd,@cBuffer, nBufsize)
+tBuffer=STRTRAN(tBuffer,0h00,'')
+cBuffer=STRTRAN(cBuffer,0h00,'')
+if tBuffer=='QQ2009' AND cBuffer=='TXGui'&&&判断是不是QQ主窗口
+lpdwProcId=0
+GetWindowThreadProcessId(hwnd,@lpdwProcId)&&获取进程ID
+***************进程搜索模块
+mi=REPLICATE(CHR(0),28)
+dwtotalcommit = 0
+paddr = 0
+ret=0
+mem_private = 0x20000
+page_readwrite=0x4
+process_vm_operation = 0x8
+process_vm_read = 0x10
+process_vm_write = 0x20
+process_query_information = 0x400
+process_all_access = 0x1f0fff
+hprocess = openprocess(process_all_access,0,lpdwprocid)&&以查询 读和写的权限打开
+ret = virtualqueryex(hprocess,paddr,@mi,len(mi))
+fxpstr=''
+tempstr=''
+k=0
+DO While ret = 28
+If CTOBIN(SUBSTR(mi,21,4),'4rs')=PAGE_READWRITE .AND. CTOBIN(SUBSTR(mi,25,4),'4rs')=MEM_PRIVATE 
+lpBaseAddress=CTOBIN(SUBSTR(mi,1,4),'4rs')&&基址
+lpRegionSize=CTOBIN(SUBSTR(mi,13,4),'4rs')&&页面大小        
+hProcHeap = GetProcessHeap()
+AdrStr = HeapAlloc(hProcHeap,0,lpRegionSize) &&申请
+lpNumberOfBytesRead=0
+IF lpBaseAddress>0x181CC0
+ReadProcessMemory(hProcess,lpBaseAddress,AdrStr,lpRegionSize,@lpNumberOfBytesRead)         
+fxpstr=SYS(2600,AdrStr,lpRegionSize)
+IF AT(STRCONV('Msg2.0.db',5),fxpstr)>0 
+QQHstr=SUBSTR(fxpstr,AT(STRCONV('Msg2.0.db',5),fxpstr)-28,28)
+QQHstr=STRcon(QQHstr,6)
+QQHstr=right( QQHstr,LEN(QQHstr)-AT('\',QQHstr))
+IF VAL(QQHstr)>0
+? 'QQ:'+LEFT(QQHstr,LEN(QQHstr)-1)&&显示已登陆的QQ号码
+EXIT
+ENDI
+ENDIF
+ENDI
+EndIf
+pAddr = CTOBIN(SUBSTR(mi,1,4),'4rs') + CTOBIN(SUBSTR(mi,13,4),'4rs')
+ret = VirtualQueryEx(hProcess,pAddr,@mi,LEN(mi))
+ENDD
+CloseHandle (hProcess)
+***************进程搜索结束
+ENDI
+ENDF

@@ -1,0 +1,13 @@
+IF USED("test") THEN 
+	USE IN test
+ENDIF 
+
+USE d:\test SHARED AGAIN 
+SELECT test
+SCAN 
+	IF NOT downloads then
+		IF lDownloadFiles(column1) then
+			replace Downloads WITH .t.
+		ENDIF
+	ENDIF
+ENDSCAN

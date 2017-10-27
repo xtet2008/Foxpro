@@ -1,0 +1,22 @@
+* Program Name : UsingShellAbout.Prg
+* Article No.  : [Win API] - 015
+* Illustrate   : ?? Windows About ???
+* Date / Time  : 2001.09.10
+* Writer       : 
+* 1st Post     : 
+* My Comment   : ???????????:?????,????? MS ??
+*              : ?????
+
+Declare INTEGER ShellAbout IN shell32;
+    INTEGER hwnd,;
+    STRING  szApp,;
+    STRING  szOtherStuff,;
+    INTEGER hIcon
+
+HWnd = 0
+szApp = ">>>   The App Information ..."
+szOtherStuff = ">>>  The ShellAbout Function ..."
+hIcon = 0
+
+? ShellAbout (hwnd)
+? ShellAbout (hwnd, szApp , szOtherStuff , hIcon)

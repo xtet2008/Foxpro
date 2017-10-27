@@ -1,0 +1,574 @@
+Procedure UTRIM
+	Lparameter UTRIM_VALUE
+	If Vartype(UTRIM_VALUE) = 'C' And  .Not. Empty(UTRIM_VALUE)
+		Return Alltrim(Upper(UTRIM_VALUE))
+	Else
+		Return ''
+	Endif
+Endproc
+Procedure DefLogic
+	Lparameters plLogicValue
+	If Vartype(plLogicValue)<>Upper('L') Then
+		Return .F.
+	Else
+		Return plLogicValue
+	EndIf
+EndProc
+*!*	FUNCTION resizeimage(pSourceFileNAme as String,pNewFileNAme as String,nWidth as Long,nHeight as long)
+*!*		PRIVATE pSourceFileNAme,pNewFileNAme,nWidth,nHeight
+*!*		DECLARE INTEGER GdiplusStartup IN gdiplus;
+*!*			INTEGER @token, STRING @INPUT, INTEGER OUTPUT
+*!*		LOCAL hToken, cInput
+*!*		hToken = 0
+*!*		cInput = PADR(CHR(1), 16, CHR(0))
+*!*		GdiplusStartup(@hToken, @cInput, 0)
+*!*		DECLARE INTEGER GdipLoadImageFromFile IN gdiplus.DLL ;
+*!*			STRING wFilename, INTEGER @nImage
+*!*		LOCAL nImage
+*!*		nImage = 0
+*!*		GdipLoadImageFromFile(STRCONV(pSourceFileNAme + CHR(0), 5), @nImage)
+*!*		#DEFINE   GDIPLUS_PIXELFORMAT_32bppARGB          0x0026200A
+*!*		DECLARE INTEGER GdipCreateBitmapFromScan0 IN gdiplus.DLL ;
+*!*			INTEGER nWidth, INTEGER nHeight, INTEGER nStride;
+*!*			, INTEGER nPixelFormat ;
+*!*			, STRING @ cScan0, INTEGER @ nImage
+*!*		LOCAL nBitmap, nWidth, nHeight, nX, nY
+*!*		nBitmap = 0
+*!*		nX = 0
+*!*		nY = 0
+*!*		GdipCreateBitmapFromScan0(nWidth, nHeight, 0, GDIPLUS_PIXELFORMAT_32bppARGB, 0, @nBitmap)
+*!*		DECLARE INTEGER GdipGetImageGraphicsContext IN gdiplus.DLL ;
+*!*			INTEGER nImage, INTEGER @ nGraphics
+*!*		LOCAL nGraphics
+*!*		nGraphics = 0
+*!*		GdipGetImageGraphicsContext (nBitmap, @nGraphics)
+*!*		DECLARE INTEGER GdipDrawImageRect IN gdiplus.DLL ;
+*!*			INTEGER nGraphics, INTEGER nImage, SINGLE,SINGLE,SINGLE,SINGLE
+*!*		GdipDrawImageRect(nGraphics, nImage, nX, nY, nWidth, nHeight)
+*!*		LOCAL lcEncoder
+*!*		lcEncoder = REPLICATE(CHR(0),16)
+*!*		DECLARE INTEGER CLSIDFromString IN ole32 STRING lpsz, STRING @pclsid
+*!*		CLSIDFromString(STRCONV("{557CF401-1A04-11D3-9A73-0000F81EF32E}" + CHR(0), 5), @lcEncoder)
+*!*		DECLARE INTEGER GdipSaveImageToFile IN gdiplus.DLL ;
+*!*			INTEGER nImage, STRING wFilename, STRING qEncoder, INTEGER nEncoderParamsPtr
+*!*		ERASE (pNewFileNAme)
+*!*		DECLARE Long GdipDisposeImage IN Gdiplus.dll Long nativeImage
+*!*		GdipDisposeImage(nImage)
+*!*		GdipSaveImageToFile (nBitmap, STRCONV(pNewFileNAme,5) + CHR(0), lcEncoder, 0)
+*!*		DECLARE INTEGER GdiplusShutdown IN gdiplus INTEGER token
+*!*		GdiplusShutdown(hToken)
+*!*		CLEAR DLLS
+*!*	ENDFUNC
+
+*!*	**调用**
+*!*	resizeimage('1.jpg',2.jpg'',200,400)
+*!*	将1.jpg的尺寸改为200×400并保存为2.jpg
+*!*	代码较乱，需要的自己整理
+
+*!*	***本代码由行者SCX2PRG自动转换***
+*!*	PUBLIC LaodForm
+*!*	LaodForm=CreateObject("MyForm")
+*!*	LaodForm.Show
+*!*	RETURN
+*!*	*-------------------------------------------------------------*
+*!*	*-VFP应用程式算法群:12787940 行者孙:310727570-*
+*!*	*-------------------------------------------------------------*
+*!*	DEFINE CLASS MyForm AS form
+*!*		Visible=.T.
+*!*		Top = 63
+*!*		Left = 274
+*!*		Height = 324
+*!*		Width = 385
+*!*		DoCreate = .T.
+*!*		Picture =" "
+*!*		Caption = "DLL函数查看器-行者示例"
+*!*		Name = "Form1"
+*!*		PROCEDURE Init
+*!*			This.AddObject("Dataenvironment","ClassName1")
+*!*			This.AddObject("Command5","ClassName2")
+*!*			This.AddObject("List","ClassName3")
+*!*			This.AddObject("Text1","ClassName4")
+*!*			ThisForm.List.View=3
+*!*			ThisForm.List.fullRowSelect= .T.
+*!*			ThisForm.List.appearance=0
+*!*			ThisForm.List.ColumnHeaders.Add(1,"C1","序号",40,0)
+*!*			ThisForm.List.ColumnHeaders.Add(2,"C2","函数名称",200,0)
+*!*			ThisForm.List.ColumnHeaders.Add(3,"C3","函数地址",120,0)
+*!*		ENDPROC
+*!*	ENDDEFINE
+*!*	DEFINE CLASS ClassName1 AS dataenvironment
+*!*		Visible=.T.
+*!*		Top = 0
+*!*		Left = 0
+*!*		Width = 0
+*!*		Height = 0
+*!*		DataSource = .NULL.
+*!*		Name = "Dataenvironment"
+*!*	ENDDEFINE
+*!*	DEFINE CLASS ClassName2 AS commandbutton
+*!*		Visible=.T.
+*!*		Top = 12
+*!*		Left = 12
+*!*		Height = 25
+*!*		Width = 60
+*!*		Caption = "开打文件"
+*!*		Name = "Command5"
+*!*		PROCEDURE Click
+*!*			DECLARE Long ImageDirectoryEntryToData IN imagehlp Long, long, long, Long@
+*!*			DECLARE INTEGER CloseHandle IN kernel32 INTEGER hObject
+*!*			DECLARE INTEGER LoadLibrary IN kernel32;
+*!*				STRING lpLibFileName
+*!*			DECLARE INTEGER FreeLibrary IN kernel32;
+*!*				INTEGER hLibModule
+*!*			DECLARE Long ImageDirectoryEntryToData IN imagehlp long HANDLE,long,long,Long @
+*!*			DECLARE integer GetProcAddress IN WIN32API integer hModule, string procname
+*!*			GENERIC_READ=0x80000000
+*!*			FILE_SHARE_READ = 1
+*!*			FILE_SHARE_WRITE=2
+*!*			OPEN_EXISTING = 3
+*!*			FILE_ATTRIBUTE_NORMAL = 0x80
+*!*			IMAGE_DIRECTORY_ENTRY_EXPORT =0
+*!*			DllFile=GETFILE('dll')
+*!*			IF FILE(DllFile)
+*!*				thisform.text1.Value=DllFile
+*!*				hLibModule=LoadLibrary(DllFile)
+*!*				IF hLibModule>0
+*!*					ulSize=0
+*!*					AdrEXPORT=ImageDirectoryEntryToData(hLibModule,1,IMAGE_DIRECTORY_ENTRY_EXPORT,@ulSize)
+*!*					IF AdrEXPORT>0
+*!*						EXPORT_DIRECTORY=SYS(2600,AdrEXPORT,ulSize)
+*!*						NumberOfFunctions=CTOBIN(SYS(2600,AdrEXPORT+24,4),'4rs')&&函数数量
+*!*						FunctionsAdress=AdrEXPORT+44&&函数虚拟偏移地址开始地址
+*!*						dPtr=4*NumberOfFunctions*2+NumberOfFunctions*2-4&&计算从函数虚拟地址到函数名列表地址的字节数
+*!*						NamePtr=FunctionsAdress+dPtr&&得到函数名称列表编译地址
+*!*						NameStr=SYS(2600,NamePtr,ulSize-dPtr-44)
+*!*						NameStr=0h00+namestr
+*!*						ThisForm.List.ListItems.Clear
+*!*						FOR i=2 TO NumberOfFunctions+1&&往LISTVIEW中添加记录
+*!*							DllName=STREXTRACT(namestr,0h00,0h00,i)
+*!*							DllEnty=transform(GetProcAddress(hLibModule,DllName)-hLibModule,'@0')
+*!*							sd=ThisForm.List.ListItems.Add(i-1,"Co"+ALLTRIM(STR(i)),ALLTRIM(STR(i-1)))
+*!*							sd.SubItems(1)=STRCONV(DllName,11)&&注意：这里DllName是UTF8编码，所以要转换，不然出现乱码，SQL有时出现乱码也是因此。
+*!*							sd.SubItems(2)=ALLTRIM(DllEnty)
+*!*						ENDF
+*!*					ENDI
+*!*					FreeLibrary(hLibModule)
+*!*				ENDIF
+*!*			ENDI
+*!*		ENDPROC
+*!*	ENDDEFINE
+*!*	DEFINE CLASS ClassName3 AS olecontrol
+*!*		OleClass="MSComctlLib.ListViewCtrl.2"
+*!*		Visible=.T.
+*!*		Top = 48
+*!*		Left = 12
+*!*		Height = 264
+*!*		Width = 360
+*!*		Name = "List"
+*!*	ENDDEFINE
+*!*	DEFINE CLASS ClassName4 AS textbox
+*!*		Visible=.T.
+*!*		FontSize = 10
+*!*		Height = 24
+*!*		Left = 72
+*!*		Top = 12
+*!*		Width = 300
+*!*		Name = "Text1"
+*!*	ENDDEFINE
+
+*!*	*!*	Select cDtl
+*!*	*!*	Set Order To USER_ID   && USER_ID
+*!*	*!*	Select cMast
+*!*	*!*	Set Relation to User_ID into cDtl
+*!*	*!*	cTemp=''
+*!*	*!*	On Error
+*!*	*!*	Goto top
+*!*	*!*	Scan
+*!*	*!*		cTemp=cMast.User_ID+cMast.Name+cDtl.Subject+Alltrim(Str(cDtl.Data))+Chr(13)+Chr(10)
+*!*	*!*		StrToFile(cTemp,'D:\Temp.Txt',1)
+*!*	*!*	EndScan
+
+
+FUNCTION  Regedit
+	PARAMETERS    nReg_code,;&&操作代码，0-创建子键，1-写注册表，2-读注册表，3-删除注册表项
+	cReg_MainKey,;              &&注册表主键
+	cReg_skey,;                        &&子键
+	cReg_skey_New,;                &&需创建的子键
+	cReg_skeyname,;                &&注册表项
+	cReg_keyvalue,;                &&注册表项的值
+	nReg_ValueType                  &&注册表项的值的类型,{1:数据串,	2:Unicode串,		3:二进制,	4:32位数值}
+
+	cReg_MainKey=Upper(DefCharacters(cReg_MainKey))
+
+	*操作注册表
+	*语法：
+	*创建子键：regedit(0,主键值,子键名,新建子键名)  		&& regedit(0,"HKCU","Software","Roger")
+	*写注册表：regedit(1,主键值,子键名,,注册项,项目值)  	&& regedit(1,"HKCU",'Software\Roger',,'Windir','%Windir%',1)
+	*读注册表：regedit(2,主键值,子键名,,注册项)  			&& regedit(2,'HKCU','software\Roger',,'Windir')  It will return "&Windir&"
+	*删除子键：regedit(3,主键值,子键名)  					&& regedit(3,"HKCU","Software\Roger")
+
+	Local Error_wk,_isError
+	Error_wk = On("ERROR")
+	ON  ERROR  _isError = .T.
+	LOCAL  nDisposition,;
+		lnResult,;            &&要取得值的注册表子项的地址
+	nResult,;
+		ReturnValue,;      &&返回的注册表值
+	nKeyLength,;        &&要写的值的长度
+	BUFFER,;                &&返回注册表项值
+	BufferSize,;        &&返回值的长度
+	lnError,;              &&返回注册表函数的错误代码
+	nError,;                &&返回的错误代码
+	skey1,skey2
+
+	Do case
+		Case Upper(cReg_MainKey)='HKEY_CLASSES_ROOT' or Upper(cReg_MainKey)='HKCR'
+			nReg_MainKeyNo = bitset(0,31) &&-2147483648
+		Case Upper(cReg_MainKey)='HKEY_CURRENT_USER' or Upper(cReg_MainKey)='HKCU'
+			nReg_MainKeyNo = bitset(0,31)+1 &&-2147483647
+		Case Upper(cReg_MainKey)='HKEY_LOCAL_MACHINE' or Upper(cReg_MainKey)='HKLM'
+			nReg_MainKeyNo = bitset(0,31)+2 &&-2147483646
+		Case Upper(cReg_MainKey)='HKEY_USERS' or Upper(cReg_MainKey)='HKUR'
+			nReg_MainKeyNo = bitset(0,31)+3 &&-2147483645
+		Case Upper(cReg_MainKey)='HKEY_CURRENT_CONFIG' or Upper(cReg_MainKey)='HKCC'
+			nReg_MainKeyNo = bitset(0,31)+5 &&-2147483643
+		Case Upper(cReg_MainKey)='HKEY_DYN_DATA' or Upper(cReg_MainKey)='HKDD'
+			nReg_MainKeyNo = bitset(0,31)+6 &&-2147483642
+		Otherwise
+			On Error &Error_wk.
+			Return .F.
+	EndCase
+
+	IF  nReg_code=1  AND  !BETWEEN(nReg_ValueType,1,4)
+		On Error &Error_wk.
+		RETURN  .F.
+	ENDIF
+	*nReg_MainKeyNo=nReg_MainKeyNo-2147483649
+	*注册表键值访问权限
+	#DEFINE  KEY_ALL_ACCESS                          983103                    &&所有权限
+
+	DECLARE  INTEGER  RegOpenKeyEx  IN  Win32API  ;
+		INTEGER  nKey,;
+		STRING  @cSubKey,  ;
+		INTEGER  nReserved,;
+		INTEGER  nAccessMask,;
+		INTEGER  @nResult
+
+	DECLARE  INTEGER  RegQueryValueEx  IN  Win32API;
+		INTEGER  nKey,  ;
+		STRING  cValueName,  ;
+		INTEGER  nReserved,;
+		INTEGER  @nType,  ;
+		STRING  @cBuffer,  ;
+		INTEGER  @nBufferSize
+
+	DECLARE  RegCreateKeyEx  IN  WIN32API;
+		INTEGER  hKey,;                                &&一个打开项的句柄，或者一个标准项名
+	STRING  lpSubKey,;                          &&欲创建的新子项的名字
+	INTEGER  Reserved,;                        &&设为零
+	STRING  lpClass,;                            &&项的类名
+	INTEGER  dwOptions,;                      &&零,这个项不正式保存下来，系统重新启动后会消失
+	INTEGER  samDesired,;                    &&访问权限
+	INTEGER  lpSecurityAttributes,;	   &&对这个项的安全特性进行描述的一个结构,零
+	INTEGER  @phkResult,;                    &&指定用于装载新子项句柄的一个变量
+	INTEGER  @lpdwDisposition            &&返回是新建子项,还是打开子项(如果新建的子项存在)
+
+	DECLARE  RegDeleteKey  IN  WIN32API;
+		INTEGER  hKey,;
+		STRING  lpSubKey
+
+	DECLARE  INTEGER  RegCloseKey  IN  Win32API  INTEGER  nKey
+
+	DECLARE  INTEGER  RegSetValueEx  IN  Win32API;
+		INTEGER  hKey,;
+		STRING  lpValueName,;
+		INTEGER  Reserved,;
+		INTEGER  dwType,;
+		STRING    lpData,;
+		INTEGER  cbData
+
+	DO CASE
+		CASE  nReg_code=0          &&创建子建
+			nResult=  0
+			nDisposition  =  0
+			nError  =  RegOpenKeyEx(nReg_MainKeyNo,cReg_sKey,0,  KEY_ALL_ACCESS,  @nResult)
+			IF  nError#0
+				Wait window "Can't open the sub_key." nowait
+				On Error &Error_wk.
+				RETURN  .F.
+			ENDIF
+			nError=RegCreateKeyEx(nResult,cReg_sKey_New,0,'nReg_ValueType',0,KEY_ALL_ACCESS,0,@lnResult,@nDisposition)
+			=RegCloseKey(nResult)
+			RETURN  nError
+			***********************************
+		CASE  nReg_code=1    &&写注册表
+			nError=0
+			nError  =RegOpenKeyEx(nReg_MainKeyNo,cReg_sKey,  0,KEY_ALL_ACCESS,  @lnResult)
+			IF  nError#0
+				Wait window "Can't write the sub_key." nowait
+				On Error &Error_wk.
+				RETURN  .F.
+			ENDIF
+			nKeyLength=LEN(cReg_KeyValue)
+			nError=RegSetValueEx(lnResult,cReg_sKeyName,0,nReg_ValueType,  @cReg_KeyValue,  @nKeyLength)
+			=RegCloseKey(lnResult)
+			On Error &Error_wk.
+			RETURN  nError=0
+			***********************************
+		CASE  nReg_code=2              &&读注册表
+			ReturnValue  =  ""
+			lnResult  =  0
+			BUFFER  =  SPACE(128)
+			BufferSize  =  128
+			lnError  =  RegOpenKeyEx(nReg_MainKeyNo,cReg_sKey,  0,  KEY_ALL_ACCESS,  @lnResult)
+			IF  lnError  =  0
+				lnType  =  0
+				lnError  =  RegQueryValueEx(lnResult,  cReg_skeyname,  0,  @lnType,  @BUFFER,  @BufferSize)
+				IF  lnError  =  0  AND  BUFFER  <>  CHR(0)                        &&如果错误码为  0,  否则正常读取值.
+					ReturnValue  =  LEFT(BUFFER,  BufferSize  -  1)  &&取得返回值
+				ENDIF
+			ENDIF
+			=RegCloseKey(lnResult)
+			On Error &Error_wk.
+			RETURN  ReturnValue
+			***********************************
+		CASE  nReg_code=3                &&删除注册表项
+			skey1=LEFT(cReg_sKey,AT('\',cReg_sKey,OCCURS('\',cReg_sKey))-1)
+			skey2=SUBST(cReg_sKey,AT('\',cReg_sKey,OCCURS('\',cReg_sKey))+1)
+			nError  =RegOpenKeyEx(nReg_MainKeyNo,sKey1,  0,KEY_ALL_ACCESS,  @lnResult)
+			IF  nError#0
+				Wait window "Can't delete the sub_key." nowait
+				On Error &Error_wk.
+				RETURN  .F.
+			ELSE
+				nError=RegDeleteKey(lnResult,sKey2)
+			ENDIF
+			On Error &Error_wk.
+			RETURN  nError
+	ENDCASE
+EndFunc
+
+
+
+PROCEDURE paulDATE
+	LPARAMETER PLDATE , PLTYPE , PLON
+	LOCAL PLDATE , PLTYPE , PLMONTH , PLDAY
+	SET CENTURY ON
+	IF  .NOT. EMPTY(PLON)
+		SET CENTURY &plon.
+	ENDIF
+	IF SET('century') = 'ON'
+		PLYEAR = ALLTRIM(STR(YEAR(PLDATE)))
+	ELSE
+		PLYEAR = SUBSTR(ALLTRIM(STR(YEAR(PLDATE))),3,2)
+	ENDIF
+	IF PLDATE = {}
+		RETURN '  /  / '
+	ENDIF
+	IF VARTYPE(PLDATE) = 'C'
+		PLDATE = CTOD(PLDATE)
+	ENDIF
+	IF  .NOT. EMPTY(PLTYPE)
+		IF VARTYPE(PLTYPE) = 'C' .OR. VARTYPE(PLTYPE) = 'M'
+			PLTYPE = VAL(PLTYPE)
+		ENDIF
+	ELSE
+		PLTYPE = 1
+	ENDIF
+	IF PLTYPE = 1
+		PLMONTH = SUBSTR(CMONTH(PLDATE),1,3)
+		PLDAY = ALLTRIM(STR(DAY(PLDATE)))
+		RETURN PLDAY + '-' + PLMONTH + '-' + PLYEAR
+	EndIf
+	Set Step On 
+	IF PLTYPE = 2
+		PLMONTH = CMONTH(PLDATE)
+		PLDAY = ALLTRIM(STR(DAY(PLDATE)))
+		RETURN PLMONTH + ' ' + PLDAY + ', ' + PLYEAR
+	ENDIF
+	IF PLTYPE = 3
+		PLMONTH = CMONTH(PLDATE)
+		PLDAY = ALLTRIM(STR(DAY(PLDATE)))
+		RETURN PLDAY + ' ' + PLMONTH + ', ' + PLYEAR
+	ENDIF
+	IF PLTYPE = 4
+		IF DEF_LANG = 'CHS'
+			PLDATE = DTOS(PLDATE)
+			RETURN LEFT(PLDATE,4) + '年' + SUBSTR(PLDATE,5,2) + '月' + RIGHT(PLDATE,2) + '日'
+		ELSE
+			RETURN DMY(PLDATE)
+		ENDIF
+	ENDIF
+	IF PLTYPE = 5
+		IF EMPTY(PLDATE)
+			PLDATE = DATE()
+		ENDIF
+		RETURN PLDATE - DAY(PLDATE) + 1
+	ENDIF
+	IF PLTYPE = 6
+		IF EMPTY(PLDATE)
+			PLDATE = DATE()
+		ENDIF
+		VPLLASTDATE = PLDATE
+		VPLCOUNTER = 1
+		DO WHILE VPLCOUNTER <= 32
+			VPLCOUNTER = VPLCOUNTER + 1
+			VPLLASTDATE = VPLLASTDATE + 1
+			IF MONTH(PLDATE) <> MONTH(VPLLASTDATE)
+				EXIT
+			ENDIF
+		ENDDO
+		RETURN VPLLASTDATE - 1
+	ENDIF
+	RETURN DTOC(PLDATE)
+ENDPROC
+
+*------
+Procedure Get_Fields
+	Lparameter GET_TYPE,GET_SIZE,GET_ALIAS,GET_AUTOCLOSE,lReturnEmpty
+	lReturnEmpty=DefLogic(lReturnEmpty)
+	Local GET_SELECT , GET_RETURN , TEMP_FIELD , TEMP_FIELDVALUE , TEMP_TYPEEXPRESSION ,  ;
+		TEMP_SIZEEXPRESSION , GET_CONTROL
+	GET_SELECT = Select()
+	If Vartype(GET_ALIAS) <> 'C' .Or. Empty(GET_ALIAS)
+		If Empty(Alias())
+			Wait Window Nowait 'Please sure the table opened in current select !'
+			Return ''
+		Else
+			GET_ALIAS = Alias()
+		Endif
+	Else
+		If Select(GET_ALIAS) = 0
+			If Iif('.DBF' $ Upper(GET_ALIAS),File(GET_ALIAS),File(GET_ALIAS + '.DBF'))
+				LcDbfOpen(GET_ALIAS,GET_ALIAS)
+			Else
+				Wait Window Nowait 'Can not find the table ' + "'"+GET_ALIAS+"'"
+				Return ''
+			Endif
+		Endif
+	Endif
+	Select (GET_ALIAS)
+	Local GET_PLUS
+	GET_PLUS=','
+	If  .Not. IS_CHARACTER(GET_TYPE)
+		GET_TYPE = 'A'
+	Else
+		GET_TYPE = UTRIM(GET_TYPE)
+	Endif
+	GET_SIZE = UTRIM(GET_SIZE)
+	If  .Not. (Left(UTRIM(GET_SIZE),1) $ '=><') And IS_CHARACTER(GET_SIZE)
+		GET_SIZE = '=' + UTRIM(GET_SIZE)
+	Endif
+	GET_RETURN = ''
+	For GET_CONTROL = 1 To Afields(TEMPARRAY,GET_ALIAS)
+		TEMP_FIELD = TEMPARRAY(GET_CONTROL,1)
+		TEMP_FIELDTYPE = TEMPARRAY(GET_CONTROL,2)
+		TEMP_TYPEEXPRESSION = "'" + GET_TYPE + "'" + '==' + "'" + TEMP_FIELDTYPE + "'"
+		TEMP_SIZEEXPRESSION = UTRIM(Str(TEMPARRAY(GET_CONTROL,3))) + UTRIM(GET_SIZE)
+		If 'AND' $ TEMP_SIZEEXPRESSION
+			TEMP_SIZEEXPRESSION =  ;
+				STRTRAN(TEMP_SIZEEXPRESSION,'AND','AND ' + UTRIM(Str(TEMPARRAY(GET_CONTROL,3))))
+		Endif
+		If 'OR' $ TEMP_SIZEEXPRESSION
+			TEMP_SIZEEXPRESSION =  ;
+				STRTRAN(TEMP_SIZEEXPRESSION,'OR','OR ' + UTRIM(Str(TEMPARRAY(GET_CONTROL,3))))
+		Endif
+		If  .Not. GET_TYPE == 'A'
+			If Not (&TEMP_TYPEEXPRESSION.) Then
+				Loop
+			Endif
+		Endif
+		If  .Not. Empty(GET_SIZE)
+			If Not (&TEMP_SIZEEXPRESSION.)
+				Loop
+			Endif
+		Endif
+		If Empty(GET_RETURN)
+			GET_RETURN = TEMP_FIELD
+		Else
+			GET_RETURN = GET_RETURN + GET_PLUS + TEMP_FIELD
+		Endif
+	Endfor
+	If Vartype(GET_AUTOCLOSE) <> 'L'
+		GET_AUTOCLOSE = .F.
+	Endif
+	If GET_AUTOCLOSE
+		LcDbfClose(GET_ALIAS)
+	EndIf
+	
+	If Empty(GET_RETURN)
+		If lReturnEmpty Then
+			Return ''
+		Else
+			Return ALLFIELDS(GET_PLUS) && The default value
+		EndIf
+	Else
+		Return GET_RETURN
+	Endif
+Endproc
+*------
+Procedure ALLFIELDS
+	Lparameter ALLFIELDS_PLUS , ALLFIELDS_ALIAS
+	Local ALLFIELDS_SELECT , ALLFIELDS_CONTROL , ALLFIELDS_RETURN
+	ALLFIELDS_SELECT = Select()
+	ALLFIELDS_ALIAS = LC_ALIAS(ALLFIELDS_ALIAS)
+	If  .Not. IS_CHARACTER(ALLFIELDS_ALIAS)
+		Return ''
+	Endif
+	If Vartype(ALLFIELDS_PLUS) <> 'C'
+		ALLFIELDS_PLUS = ','
+	Endif
+	ALLFIELDS_RETURN = Field(1,ALLFIELDS_ALIAS)
+	For ALLFIELDS_CONTROL = 2 To Fcount(ALLFIELDS_ALIAS)
+		ALLFIELDS_RETURN =  ;
+			ALLFIELDS_RETURN + ALLFIELDS_PLUS + Field(ALLFIELDS_CONTROL,ALLFIELDS_ALIAS)
+	Endfor
+	If ALLFIELDS_SELECT > 0
+		Select (ALLFIELDS_SELECT)
+	Endif
+	Return ALLFIELDS_RETURN
+Endproc
+Procedure LC_ALIAS
+	Lparameter LC_ALIAS_DBF
+	Local LC_ALIAS_SELECT
+	LC_ALIAS_SELECT = Select()
+	If Vartype(LC_ALIAS_DBF) = 'C' And IS_CHARACTER(LC_ALIAS_DBF)
+		If Select(LC_ALIAS_DBF) > 0
+			Return LC_ALIAS_DBF
+		Else
+			If Iif('.DBF' $ Upper(LC_ALIAS_DBF),File(LC_ALIAS_DBF),File(LC_ALIAS_DBF + '.Dbf')) And  ;
+					LcDbfOpen(LC_ALIAS_DBF,LC_ALIAS_DBF)
+				If LC_ALIAS_SELECT > 0
+					Select (LC_ALIAS_SELECT)
+				Endif
+				Return LC_ALIAS_DBF
+			Else
+				If LC_ALIAS_SELECT > 0
+					Select (LC_ALIAS_SELECT)
+				Endif
+				Return ''
+			Endif
+		Endif
+	Else
+		If Empty(Alias())
+			Return ''
+		Else
+			Return Alias()
+		Endif
+	Endif
+Endproc
+Procedure IS_CHARACTER
+	Lparameter CHARACTER_VALUE
+	If Vartype(CHARACTER_VALUE) <> 'C'
+		CHARACTER_VALUE = ''
+	Endif
+	If Chr(10) $ CHARACTER_VALUE .Or. Chr(13) $ CHARACTER_VALUE
+		Return .T.
+	Else
+		If Vartype(CHARACTER_VALUE) = 'C' And  .Not. Empty(CHARACTER_VALUE)
+			Return .T.
+		Else
+			Return .F.
+		Endif
+	Endif
+Endproc

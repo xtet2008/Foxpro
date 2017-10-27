@@ -1,0 +1,10 @@
+=Travel(6)
+Procedure Travel
+	Lparameters nValue
+	nValue=nValue-1
+	If nValue<=0 Then
+		Return
+	EndIf
+	Wait window Alltrim(Str(nValue))
+	Travel(nValue)
+EndProc

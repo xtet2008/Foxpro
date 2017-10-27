@@ -1,0 +1,24 @@
+* Program Name : ElapsedTime.Prg
+* Article No.  : [Win API] - 024
+* Illustrate   : 计算开机时间
+* Date / Time  : 2001.09.25
+* Writer       : 
+* 1st Post     : 
+* My Comment   : 用 Win API 的函数比用 VFP 的计时器控件计算时间
+*              : 要少开销资源。
+
+Declare LONG GetTickCount IN WIN32API
+Local lnSeconds, lnHour, lnMin, lnSec
+lnSeconds = GetTickCount()/1000
+lnHour = Int(lnSeconds/3600)
+lnMin = Int(Mod(lnSeconds,3600)/60)
+lnSec = lnSeconds - lnHour*3600 - lnMin*60
+Clear
+?lnSeconds
+?lnHour
+?lnMin
+?lnSec
+
+Messagebox("你的电脑已运行了: " + ALLTRIM(STR(lnHour)) + " 小时, " + ;
+    ALLTRIM(STR(lnMin)) + " 分, " +;
+    Alltrim(Str(lnSec)) + " 秒")

@@ -1,0 +1,6 @@
+TMPFILES	= C:\
+RESOURCE	= OFF
+SCREEN		= OFF
+TITLE		= Set System Path
+SYSMENU		= oFF
+PALETTE 	= OFF

@@ -1,0 +1,66 @@
+*!*	Function UNCOMPIAPP(APPFILENAME As String )
+APPFILENAME =GetFile('App')
+
+ON ERrOR MESSAGEBOX('分离失败','信息提示')
+HWND=FOPEN(APPFILENAME)
+FSEEK(HWND,5)
+st=FREAD(HWND,2)
+st=RIGHT(st,1)+left(st,1)
+st='0x'+STRCONV(st,15)
+F_COUNT=&st
+DIMENSION F_LIST[F_COUNT]
+DIMENSION DZ1[F_COUNT]
+DIMENSION DZ2[F_COUNT]
+FSEEK(HWND,13)
+BS6=FREAD(HWND,4)
+FSEEK(HWND,17)
+BS8=FREAD(HWND,4)
+FSEEK(HWND,9)
+BS5=FREAD(HWND,4)
+LDZ=''
+LCD=''
+GDZ=''
+FOR i=4 TO 1 STEP -1
+	LDZ=LDZ+STRCONV(SUBSTR(BS6,i,1),15 )
+	LCD=LCD+STRCONV(SUBSTR(BS8,i,1),15 )
+	GDZ=GDZ+STRCONV(SUBSTR(BS5,i,1),15 )
+endf
+LDZ='0x'+LDZ
+LCD='0x'+LCD
+GDZ='0x'+GDZ
+FSEEK(HWND,&LDZ)
+st=CHR(0)+FREAD(HWND,&LCD)+CHR(0)
+k=0
+FOR i=1 TO OCCURS(CHR(0),st)
+	flist=SUBSTR(st,AT(CHR(0),st,i)+1,AT(CHR(0),st,i+1)-AT(CHR(0),st,i))
+	IF LEN(JUSTFNAME(flist))>0 .AND. AT('.PRG',UPPER(JUSTFNAME(flist)))=0
+		k=k+1
+		F_LIST[k]=JUSTFNAME(flist)
+	endi
+endf
+FOR i=1 TO F_COUNT
+	st1=SUBSTR(FREAD(HWND,25),2,8 )
+	st2=''
+	FOR k=8 TO 1 STEP -1
+		st2=st2+SUBSTR(st1,k,1 )
+	endf
+	st2=STRCONV(st2,15)
+	fdz1='0x'+SUBSTR(st2,1,8 )
+	fdz2='0x'+SUBSTR(st2,9,8 )
+	DZ1[i]=&fdz1
+	DZ2[i]=&fdz2
+endf
+FOR i=1 TO F_COUNT
+	FSEEK(HWND,DZ2[i])
+	f_word=FREAD(HWND,DZ1[i]-DZ2[i])
+	STRTOFILE(f_word,F_LIST[i])
+endf
+FCLOSE(HWND)
+st=''
+FOR i=1 TO F_COUNT
+	st=st+F_LIST[i]+','
+	IF i=F_COUNT
+		st=st+F_LIST[i]
+	endi
+endf
+***文件分离结束****

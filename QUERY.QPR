@@ -1,0 +1,4 @@
+
+SELECT CDTL.User_id,CDTL.Subject,CDTL.Data;
+    FROM D:\ROGER\CDTL.DBF CDTL;
+    ORDER BY CDTL.User_id,CDTL.Subject,CDTL.Data
