@@ -2242,7 +2242,7 @@ Procedure MySqlStrConnect
 	LcConnectExpression=	"driver={MySQL ODBC 5.3 ANSI Driver};" + 	;
 							"Server=&LcServer;"+ 	;
 							"database=&LcDatabase;"+;	
-							"chartset=ANSI;"+;					
+							"chartset=utf8;"+;					
 							"Uid=&LcUserID;"+		;
 							"pwd=&LcPassword"
 	LcTempConnectHandle= SqlStringConnect(LcConnectExpression)

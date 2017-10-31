@@ -14772,7 +14772,7 @@ Procedure ErrorHand
 EndProc	
 *-------
 Procedure GetBodyText && UnFinished, Question : Maybe should sent a parameter as chart set otherwise its will return unreadable codes
-
+	*　返回的是 ASCI 字符串，如果直接拿结果粘贴到其他地方会显示乱码，需要 StrToFile(),打开文件全选并复制内容之后才能使用
 	Lparameters cUrl
 	
 	* Check the cUrl parameter
@@ -14787,8 +14787,6 @@ Procedure GetBodyText && UnFinished, Question : Maybe should sent a parameter as
 	Release oCdo
 	
 	Return cReturnValue
-	
-	Return str_reset(cReturnValue)
 EndProc
 *-------
 Procedure GetImageWidth

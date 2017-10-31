@@ -1643,4 +1643,84 @@ EndFunc
 Function itMessage(cMessage as String)
 	Return MessageBox(cMessage,48,"ÌבÊ¾")
 EndFunc
+* ------
+Function tableToJson(cAlias as string)
+	Local cResult, lAlias_found, nSelect, nRecno
+	cResult = ''
+	nSelect = Select()
 
+	lAlias_found = isValidStr(cAlias) and Select(cAlias)>0 && if true that means already exists in the work area
+	If !lAlias_found Then
+		If isValidStr(cAlias)
+			cAlias = getAlias(cAlias)
+		Else
+			cAlias = getAlias()
+			lAlias_found  = .T.  && that means already exists in the work area
+		EndIf
+		
+		If !isValidStr(cAlias) Then
+			Wait window 'can not found the alias ' + cAlias nowait
+			Return cResult
+		EndIf
+	EndIf
+	nRecno = Iif(lAlias_found, Recno(cAlias), 0)  
+	
+	
+	
+	Local set_start, set_end, item_start, item_end, key_start, key_end
+	item_start = '{'
+		set_start	= '['
+		set_end 	= ']'
+	item_end	= '}'
+	key_start = '"'
+	key_end = '"'
+	
+	Local nField_count, cField_name, cField_value, set_data, item_data, key_data
+	nField_count = AFields(aTmp_Array, cAlias)
+	Select (cAlias)
+	set_data = set_start
+	Scan
+		item_data = item_start
+		
+		For nField = 1 to nField_count
+			cField_name = Field(aTmp_Array(nField, 1), cAlias)
+			cField_value = Evaluate(cAlias + '.' + cField_name)
+			If Vartype(cField_value)<>Upper('C') Then
+				If Vartype(cField_value) == Vartype(.T.) Then && logical
+					cField_value = Iif(cField_value, '1', '0')  && using 0 or 1 to instead of .T. or .F.
+				Else
+					cField_value = Alltrim(Cast(cField_value as V(254)))
+				Endif
+			Else
+				cField_value = Alltrim(cField_value)
+			EndIf
+			cField_value = Strtran(cField_value, Chr(13) + Chr(10), '\n')
+			cField_value = Strtran(cField_value, Chr(13), '\n')
+			
+			key_data = key_start + Lower(cField_name) + key_end + ':' + key_start + cField_value + key_end
+			item_data = item_data + key_data + ','
+		EndFor
+		
+		item_data = Left(item_data, Len(item_data)-1) + item_end && delete the last tag of ","
+		set_data = set_data + item_data + ','
+	EndScan
+	set_data = Left(set_data, Len(set_data)-1) + set_end && delete the last tag of ","
+	
+	cResult = '{' +'"RECORDS":' + set_data + '}'
+	
+	* restore the data environment
+	If lAlias_found Then
+		Try
+			Goto (nRecno) in (cAlias)
+		Catch
+		EndTry
+	Else
+		LcDbfClose(cAlias)
+	EndIf
+	If Select(nSelect)>0 Then
+		Select (nSelect)
+	EndIf
+	
+	Return cResult
+
+EndFunc
